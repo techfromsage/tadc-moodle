@@ -8,14 +8,6 @@ require_once ($CFG->dirroot.'/course/moodleform_mod.php');
 class mod_tadc_mod_form extends moodleform_mod {
 
     function definition() {
-//        $mform = $this->_form;
-//
-//        $this->standard_coursemodule_elements();
-//
-////-------------------------------------------------------------------------------
-//        // buttons
-////        $this->standard_hidden_coursemodule_elements();
-//        $this->add_action_buttons(true, 'Proceed to digitisation request form', false);
 
         global $CFG, $OUTPUT;
 
@@ -25,37 +17,45 @@ class mod_tadc_mod_form extends moodleform_mod {
 
         // Get all existing notes if this already exists
         $update_id = optional_param('update', NAN, PARAM_INT);
-
         $notes_html = "";
-//        if (is_integer($update_id) && $update_id>0) {
-//            try {
-//                $instance = cla_get_cla_from_module_id($update_id);
-//                $typename = $instance->type;
-//
-//                $notes = cla_get_request_notes($instance->id);
-//
-//                if (!empty($notes)) {
-//                    $notes_html .= '<div class="fitem">';
-//                    $notes_html .= '<div class="fitemtitle">Previous notes</div>';
-//                    $notes_html .= '<div class="felement">';
-//                    foreach($notes as $note)  {
-//                        $notes_html .= cla_view_htmlnote($note);
-//                    }
-//                    $notes_html .= "</div></div>";
-//                }
-//
-//            } catch (Exception $e) {
-//                debugging($e->getMessage(), DEBUG_MINIMAL);
-//                $notes_html = "";
-//            }
-//        }
+        $mform =& $this->_form;
+
+        if (is_integer($update_id) && $update_id>0) {
+            global $data;
+            $typename = $data->type;
+            if(@$data->container_identifier)
+            {
+                list($idType, $id) = explode(':', $data->container_identifier);
+                switch($idType)
+                {
+                    case 'isbn':
+                        $data->isbn = $id;
+                        break;
+                    case 'issn':
+                        $data->issn = $id;
+                        break;
+                }
+            }
+            if(@$data->document_identifier)
+            {
+                list($idType, $id) = explode(':', $data->document_identifier);
+                switch($idType)
+                {
+                    case 'doi':
+                        $data->doi = $id;
+                        break;
+                    case 'pmid':
+                        $data->pmid = $id;
+                        break;
+                }
+            }
+        }
 
         // filter typename
         if (!in_array($typename, $types)) {
             $typename = $types[0];
         }
 
-        $mform =& $this->_form;
 
 //        // general mod settings
 //        $mform->addElement('header', 'general', get_string('general', 'form'));
@@ -120,8 +120,8 @@ class mod_tadc_mod_form extends moodleform_mod {
 
 
         // title
-        $mform->addElement('text', 'title', get_string('tadc'.$typename.'title', 'tadc'), array('size'=>'64'));
-        $mform->setType('title', PARAM_TEXT);
+        $mform->addElement('text', 'container_title', get_string('tadc'.$typename.'title', 'tadc'), array('size'=>'64'));
+        $mform->setType('container_title', PARAM_TEXT);
 
 //        if ($typename==='book') {
 //            $libLink = get_string("claresourcesearchpath", 'tadc');
@@ -147,8 +147,8 @@ class mod_tadc_mod_form extends moodleform_mod {
 
         // author
         if ($typename==='book') {
-            $mform->addElement('text', 'author', get_string('tadccontainercreator', 'tadc'), array('size'=>'64'));
-            $mform->setType('author', PARAM_TEXT);
+            $mform->addElement('text', 'container_creator', get_string('tadccontainercreator', 'tadc'), array('size'=>'64'));
+            $mform->setType('container_creator', PARAM_TEXT);
             //$mform->addRule('author', null, 'required', null, 'client');
             $mform->addElement('text', 'isbn', 'ISBN', array('size'=>'13'));
         } else {

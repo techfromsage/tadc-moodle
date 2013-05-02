@@ -96,6 +96,70 @@ function tadc_add_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
     {
         $tadc->status_message = $response['message'];
     }
+    if(isset($response['metadata']))
+    {
+        $md = $response['metadata'];
+        if(@$md['editionTitle'] && !@$tadc->container_title)
+        {
+            $tadc->container_title = $md['editionTitle'];
+        }
+        if(@$md['editionCreators'] && !empty($md['editionCreators']) && !@$tadc->container_creator)
+        {
+            $tadc->container_creator = implode('; ', $md['editionCreators']);
+        }
+        if($tadc->type === 'book' && @$md['isbn13'] && @!empty($md['isbn13']) && !@$tadc->container_identifier)
+        {
+            $tadc->container_identifier = 'isbn:' . $md['isbn13'][0];
+        }
+        if($tadc->type === 'journal' && @$md['issn'] && !@$tadc->container_identifier)
+        {
+            $tadc->container_identifier = 'issn:' . $md['issn'];
+        }
+        if(@$md['publisherStrings'] && !empty($md['publisherStrings']) && !@$tadc->publisher)
+        {
+            $tadc->publisher = $md['publisherStrings'][0];
+        }
+        if(@$md['publisher'] && !@$tadc->publisher)
+        {
+            $tadc->publisher = $md['publisher'];
+        }
+        if(@$md['editionDate'] && !@$tadc->publication_date)
+        {
+            $tadc->publication_date = $md['editionDate'];
+        }
+        if(@$md['sectionTitle'] && !@$tadc->section_title)
+        {
+            $tadc->section_title = $md['sectionTitle'];
+        }
+        if(@$md['sectionCreators'] && !empty($md['sectionCreators']) && !@$tadc->section_creator)
+        {
+            $tadc->section_creator = implode("; ", $md['sectionCreators']);
+        }
+        if(@$md['startPage'] && !@$tadc->start_page)
+        {
+            $tadc->start_page = $md['startPage'];
+        }
+        if(@$md['endPage'] && !@$tadc->end_page)
+        {
+            $tadc->end_page = $md['endPage'];
+        }
+        if(@$md['doi'] && !@$tadc->document_identifier)
+        {
+            $tadc->document_identifier = 'doi:' . $md['doi'];
+        } elseif(@$md['pmid'] && !@$tadc->document_identifier)
+        {
+            $tadc->document_identifier = 'pmid:' . $md['pmid'];
+        }
+        if(@$md['volume'] && !$tadc->volume)
+        {
+            $tadc->volume = $md['volume'];
+        }
+        if(@$md['issue'] && !$tadc->issue)
+        {
+            $tadc->issue = $md['issue'];
+        }
+    }
+    $tadc->name = tadc_build_title_string($tadc);
     $DB->update_record('tadc', $tadc);
     return $tadc->id;
 }
@@ -120,7 +184,7 @@ function tadc_update_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
     {
         $tadc->container_identifier = 'isbn:' . $tadc->container_identifier;
     }
-    $tadc->name = $tadc->section_title . ' from ' . $tadc->container_identifier;
+
     # You may have to add extra stuff in here #
 
     return $DB->update_record('tadc', $tadc);
@@ -293,9 +357,9 @@ function tadc_resource_to_referent($resource)
         list($idType, $id) = explode(":", $resource->container_identifier, 2);
         $params['rft.' . strtolower($idType)] = $id;
     }
-    if(@$resource->section_identifier)
+    if(@$resource->document_identifier)
     {
-        list($idType, $id) = explode(":", $resource->section_identifier, 2);
+        list($idType, $id) = explode(":", $resource->document_identifier, 2);
         $params['rft.' . strtolower($idType)] = $id;
         $params['rft_id'] = 'info:' . $idType . '/' . $id;
     }
@@ -366,6 +430,7 @@ function tadc_submit_request_form($request)
     $tadc = get_config('tadc');
     $params = tadc_build_request($request, $tadc->tenant_code);
     $params['svc.trackback'] = $tadc->trackback_endpoint . '&itemUri=' . $request->id;
+    $params['svc.metadata'] = 'request';
     $client = new tadc($tadc->tadc_location . $tadc->tenant_code, $tadc->tadc_shared_secret);
     $response = $client->submit_request($params);
     return json_decode($response, true);
@@ -374,25 +439,25 @@ function tadc_submit_request_form($request)
 function tadc_build_title_string($tadc)
 {
     $title = '';
-    if($tadc->section_title)
+    if(@$tadc->section_title)
     {
         $title .= $tadc->section_title;
     }
-    if($tadc->section_title && ($tadc->container_title || $tadc->container_identifier))
+    if(@$tadc->section_title && (@$tadc->container_title || @$tadc->container_identifier))
     {
         $title .= ' from ';
     }
-    if($tadc->container_title)
+    if(@$tadc->container_title)
     {
-        $title .= $tadc->container_title . ' ';
-    } elseif($tadc->container_identifier)
+        $title .= $tadc->container_title . ', ';
+    } elseif(@$tadc->container_identifier)
     {
-        $title .= preg_replace('/^(\w*:)/e', 'strtoupper("$0") . " "', $tadc->container_identifier) . ' ';
+        $title .= preg_replace('/^(\w*:)/e', 'strtoupper("$0") . " "', $tadc->container_identifier) . ', ';
     }
-    if($tadc->start_page && $tadc->end_page)
+    if(@$tadc->start_page && @$tadc->end_page)
     {
         $title .= 'pp. ' . $tadc->start_page . '-' . $tadc->end_page;
-    } elseif($tadc->start_page)
+    } elseif(@$tadc->start_page)
     {
         $title .= 'p.' . $tadc->start_page;
     }

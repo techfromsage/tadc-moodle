@@ -33,14 +33,14 @@ require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
 require_once(dirname(__FILE__).'/lib.php');
 
 $id = optional_param('id', 0, PARAM_INT); // course_module ID, or
-$t  = optional_param('n', 0, PARAM_INT);  // tadc instance ID - it should be named as the first character of the module
+$t  = optional_param('t', 0, PARAM_INT);  // tadc instance ID - it should be named as the first character of the module
 
 if ($id) {
     $cm         = get_coursemodule_from_id('tadc', $id, 0, false, MUST_EXIST);
     $course     = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
     $tadc  = $DB->get_record('tadc', array('id' => $cm->instance), '*', MUST_EXIST);
-} elseif ($n) {
-    $tadc  = $DB->get_record('tadc', array('id' => $n), '*', MUST_EXIST);
+} elseif ($t) {
+    $tadc  = $DB->get_record('tadc', array('id' => $t), '*', MUST_EXIST);
     $course     = $DB->get_record('course', array('id' => $tadc->course), '*', MUST_EXIST);
     $cm         = get_coursemodule_from_instance('tadc', $tadc->id, $course->id, false, MUST_EXIST);
 } else {
@@ -48,6 +48,7 @@ if ($id) {
 }
 
 require_login($course, true, $cm);
+//$context = context_course::instance($cm->id);
 $context = get_context_instance(CONTEXT_MODULE, $cm->id);
 $title = tadc_build_title_string($tadc);
 add_to_log($course->id, 'tadc', 'view', "view.php?id={$cm->id}", $title, $cm->id);
@@ -59,9 +60,7 @@ $PAGE->set_url('/mod/tadc/view.php', array('id' => $cm->id));
 $PAGE->set_title(format_string($title));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
-$PAGE->navbar->ignore_active(true);
-$PAGE->navbar->add($course->fullname, new moodle_url("/course/view.php", array("id"=>$course->id)));
-$PAGE->navbar->add($title, new moodle_url("/mod/tadc/view.php", array("id"=>$cm->id)));
+
 
 // other things you may want to set - remove if not needed
 //$PAGE->set_cacheable(false);
@@ -133,8 +132,14 @@ if($tadc->start_page && $tadc->end_page)
 $requestMarkup = chop(trim($requestMarkup),",") . '.';
 
 $requestMarkup .= '</div>';
-if($tadc->request_status)
+
+if($tadc->request_status === 'LIVE')
 {
+    $tadc_cfg = get_config('tadc');
+    $requestMarkup .= '<div class="tadc-bundle-viewer-container">';
+    $requestMarkup .= '<iframe class="tadc-bundle-viewer" id="tadc-bundle-viewer" width="100%" height="500" frameborder="0" src="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url .'"></iframe>';
+    $requestMarkup .= '</div>';
+} elseif($tadc->request_status) {
     $requestMarkup .= '<div class="tadc-request-status"><dl><dt>Status</dt><dd>' . $tadc->request_status . '</dd>';
     if($tadc->status_message)
     {

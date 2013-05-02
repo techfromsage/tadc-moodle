@@ -8,6 +8,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 require_once($CFG->libdir . "/externallib.php");
+require_once(dirname(__FILE__).'/lib.php');
 
 class local_tadc_external extends external_api {
 
@@ -48,8 +49,9 @@ class local_tadc_external extends external_api {
         $resource->request_status = $status;
         if($bundleId)
         {
-            $request->bundle_url = $bundleId;
+            $resource->bundle_url = $bundleId;
         }
+        $resource->name = tadc_build_title_string($resource);
         $DB->update_record('tadc', $resource);
         //Note: don't forget to validate the context and check capabilities
         return $DB->update_record('tadc', $resource);
