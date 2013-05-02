@@ -77,59 +77,7 @@ echo $OUTPUT->header();
 // Replace the following lines with you own code
 $requestMarkup = '<div class="tadc-request-metadata">';
 
-if($tadc->section_creator && $tadc->section_creator != $tadc->container_creator)
-{
-    $requestMarkup .= $tadc->section_creator . ' ';
-} elseif ((!$tadc->section_creator && $tadc->container_creator) || ($tadc->section_creator === $tadc->container_creator))
-{
-    $requestMarkup .= $tadc->container_creator . ' ';
-}
-if($tadc->publication_date)
-{
-    $requestMarkup .= $tadc->publication_date . ' ';
-}
-if($tadc->section_title)
-{
-    $requestMarkup .= "'" . $tadc->section_title . "' ";
-}
-if($tadc->type === 'book' && $tadc->section_title && ($tadc->container_title || $tadc->container_identifier))
-{
-    $requestMarkup .= ' in ';
-}
-if($tadc->container_title)
-{
-    $requestMarkup .= '<em>' . $tadc->container_title . '</em> ';
-} elseif($tadc->container_identifier)
-{
-    $requestMarkup .= '<em>' . preg_replace('/^(\w*:)/e', 'strtoupper("$0") . " "', $tadc->container_identifier) . '</em>, ';
-}
-if($tadc->volume)
-{
-    $requestMarkup .= 'vol. ' . $tadc->volume . ', ';
-}
-
-if($tadc->issue)
-{
-    $requestMarkup .= 'no. ' . $tadc->issue . ', ';
-}
-
-if($tadc->section_creator && $tadc->container_creator && ($tadc->section_creator !== $tadc->container_creator))
-{
-    $requestMarkup .= $tadc->container_creator . ' ';
-}
-if($tadc->type === 'book' && $tadc->publisher)
-{
-    $requestMarkup .= $tadc->publisher;
-}
-if($tadc->start_page && $tadc->end_page)
-{
-    $requestMarkup .= 'pp. ' . $tadc->start_page . '-' . $tadc->end_page;
-} elseif($tadc->start_page)
-{
-    $requestMarkup .= 'p.' . $tadc->start_page;
-}
-
-$requestMarkup = chop(trim($requestMarkup),",") . '.';
+$requestMarkup .= tadc_generate_html_citation($tadc);
 
 $requestMarkup .= '</div>';
 

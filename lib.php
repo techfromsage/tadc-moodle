@@ -89,6 +89,8 @@ function tadc_add_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
 
     $tadc->id = $DB->insert_record('tadc', $tadc);
     $response = tadc_submit_request_form($tadc);
+
+    $other_response_data = array();
     $id = explode("/", $response['id']);
     $tadc->request_id = $id[count($id) - 1];
     $tadc->request_status = $response['status'];
@@ -96,6 +98,23 @@ function tadc_add_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
     {
         $tadc->status_message = $response['message'];
     }
+
+    if(isset($response['reason_code']))
+    {
+        $tadc->reason_code = $response['reason_code'];
+    }
+    foreach(array('url', 'editions', 'locallyHeldEditions', 'errors', 'duplicate_of', 'alternate_editions') as $key)
+    {
+        if(isset($response[$key]))
+        {
+            $other_response_data[$key] = $response[$key];
+        }
+    }
+    if(!empty($other_response_data))
+    {
+        $tadc->other_response_data = json_encode($other_response_data);
+    }
+
     if(isset($response['metadata']))
     {
         $md = $response['metadata'];
@@ -462,4 +481,62 @@ function tadc_build_title_string($tadc)
         $title .= 'p.' . $tadc->start_page;
     }
     return $title;
+}
+
+function tadc_generate_html_citation($tadc)
+{
+    $requestMarkup = '';
+    if($tadc->section_creator && $tadc->section_creator != $tadc->container_creator)
+    {
+        $requestMarkup .= $tadc->section_creator . ' ';
+    } elseif ((!$tadc->section_creator && $tadc->container_creator) || ($tadc->section_creator === $tadc->container_creator))
+    {
+        $requestMarkup .= $tadc->container_creator . ' ';
+    }
+    if($tadc->publication_date)
+    {
+        $requestMarkup .= $tadc->publication_date . ' ';
+    }
+    if($tadc->section_title)
+    {
+        $requestMarkup .= "'" . $tadc->section_title . "' ";
+    }
+    if($tadc->type === 'book' && $tadc->section_title && ($tadc->container_title || $tadc->container_identifier))
+    {
+        $requestMarkup .= ' in ';
+    }
+    if($tadc->container_title)
+    {
+        $requestMarkup .= '<em>' . $tadc->container_title . '</em> ';
+    } elseif($tadc->container_identifier)
+    {
+        $requestMarkup .= '<em>' . preg_replace('/^(\w*:)/e', 'strtoupper("$0") . " "', $tadc->container_identifier) . '</em>, ';
+    }
+    if($tadc->volume)
+    {
+        $requestMarkup .= 'vol. ' . $tadc->volume . ', ';
+    }
+
+    if($tadc->issue)
+    {
+        $requestMarkup .= 'no. ' . $tadc->issue . ', ';
+    }
+
+    if($tadc->section_creator && $tadc->container_creator && ($tadc->section_creator !== $tadc->container_creator))
+    {
+        $requestMarkup .= $tadc->container_creator . ' ';
+    }
+    if($tadc->type === 'book' && $tadc->publisher)
+    {
+        $requestMarkup .= $tadc->publisher;
+    }
+    if($tadc->start_page && $tadc->end_page)
+    {
+        $requestMarkup .= 'pp. ' . $tadc->start_page . '-' . $tadc->end_page;
+    } elseif($tadc->start_page)
+    {
+        $requestMarkup .= 'p.' . $tadc->start_page;
+    }
+
+    return chop(trim($requestMarkup),",") . '.';
 }

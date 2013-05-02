@@ -15,9 +15,7 @@ class mod_tadc_mod_form extends moodleform_mod {
         $types = array('book', 'journal');
         $typename = optional_param('type','unknown', PARAM_ALPHA);
 
-        // Get all existing notes if this already exists
         $update_id = optional_param('update', NAN, PARAM_INT);
-        $notes_html = "";
         $mform =& $this->_form;
 
         if (is_integer($update_id) && $update_id>0) {
@@ -56,17 +54,6 @@ class mod_tadc_mod_form extends moodleform_mod {
             $typename = $types[0];
         }
 
-
-//        // general mod settings
-//        $mform->addElement('header', 'general', get_string('general', 'form'));
-//        $mform->addElement('hidden', 'type', null, null, $typename);
-//        $mform->addElement('hidden', 'file', null, null, '');
-//
-//
-//        // name
-//        $mform->addElement('text', 'name', get_string('claname', 'tadc'), array('size'=>'64'));
-//        $mform->setType('name', PARAM_TEXT);
-//        $mform->addRule('name', null, 'required', null, 'client');
         $mform->addElement('hidden', 'type', $typename);
         if($typename==='book')
         {
@@ -87,14 +74,6 @@ class mod_tadc_mod_form extends moodleform_mod {
         // extract title
         $mform->addElement('text', 'section_title', get_string('tadc'.$typename.'sectiontitle', 'tadc'), array('size'=>'64'));
         $mform->setType('section_title', PARAM_TEXT);
-
-//        // extract region from
-//        $mform->addElement('text', 'extractregionfrom', get_string('claextractregionfrom', 'tadc'), array('size'=>'64'));
-//        $mform->setType('extractregionfrom', PARAM_TEXT);
-//
-//        // extract region to
-//        $mform->addElement('text', 'extractregionto', get_string('claextractregionto', 'tadc'), array('size'=>'64'));
-//        $mform->setType('extractregionto', PARAM_TEXT);
 
         // extract author
         $mform->addElement('text', 'section_creator', get_string('tadcsectioncreator', 'tadc'), array('size'=>'64'));
@@ -123,27 +102,6 @@ class mod_tadc_mod_form extends moodleform_mod {
         $mform->addElement('text', 'container_title', get_string('tadc'.$typename.'title', 'tadc'), array('size'=>'64'));
         $mform->setType('container_title', PARAM_TEXT);
 
-//        if ($typename==='book') {
-//            $libLink = get_string("claresourcesearchpath", 'tadc');
-//            $libLinkTitle = get_string("claresourcesearchtitle", 'tadc');
-//        } else {
-//            $libLink = get_string("clajournalsearchpath", 'tadc');
-//            $libLinkTitle = get_string("clajournalsearchtitle", 'tadc');
-//        }
-
-        //Not ideal, but no jquery support in moodleforms at present
-//        $script = "<script type='text/javascript'>
-//            function libSearch(){
-//                var title = document.getElementById('id_title');
-//                var title_search = title.value;
-//
-//                if(title_search != ''){
-//                    window.open('{$libLink}' + title_search);
-//                }
-//            }
-//        </script><div style='clear:both; margin-left: 30%; padding-left: 20px;'><a href='#' onclick='libSearch()' ><img src='{$CFG->wwwroot}/mod/cla/pix/icons/search.gif'> Search {$libLinkTitle}</a></div>";
-
-        //$mform->addElement('html', $script);
 
         // author
         if ($typename==='book') {
@@ -171,23 +129,8 @@ class mod_tadc_mod_form extends moodleform_mod {
         $mform->addElement('text', 'issue', get_string('tadcissue', 'tadc'), array('size'=>'64'));
 
 
-/*
-        // notes
-        $mform->addElement('header', 'notes', get_string('clanotes', 'tadc'));
-        if (strlen($notes_html)>0) {
-            $mform->addElement('html', $notes_html);
-        }
-        $mform->addElement('textarea', 'note', get_string('claaddnewnote', 'tadc'), array('cols'=>'56', 'rows'=>'8'));
-        $mform->setType('notes', PARAM_RAW);
-*/
         // add standard elements, common to all modules
         $this->standard_coursemodule_elements();
-
-        // except visible as we'll always create hidden
-        $mform->removeElement('visible');
-        //This now has to be set to 0.... as it cannot be null
-        $mform->addElement('hidden', 'visible', 1);
-        $mform->setType('visible', PARAM_INT);
 
         // add standard buttons, common to all modules
         $this->add_action_buttons(true, get_string('tadcrequestformsubmittext', 'tadc'), false);

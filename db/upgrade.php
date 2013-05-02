@@ -19,4 +19,20 @@ function xmldb_tadc_upgrade($oldversion) {
 
         upgrade_mod_savepoint(true, 2013050101, 'tadc');
     }
+    if ($oldversion < 2013050201)
+    {
+        $table = new xmldb_table('tadc');
+
+        $field = new xmldb_field('reason_code', XMLDB_TYPE_CHAR, 255, null, null, null, null, 'container_creator');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('other_response_data', XMLDB_TYPE_TEXT, null, null, null, null, null, 'reason_code');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2013050201, 'tadc');
+    }
 }
