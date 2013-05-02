@@ -94,6 +94,22 @@ if($tadc->request_status === 'LIVE')
         $requestMarkup .= '<dt>Reason</dt><dd>' . $tadc->status_message . '</dd>';
     }
     $requestMarkup .= '</dl></div>';
+    if($tadc->request_status === 'REJECTED')
+    {
+        $requestMarkup .= '<div class="tadc-rejection-options">';
+        switch($tadc->reason_code)
+        {
+            case 'ElectronicCopyAvailable':
+                $requestMarkup .= '<p>Electronic versions of resource are available:</p>';
+                $tadc_data = json_decode($tadc->other_response_data, true);
+                foreach($tadc_data['url'] as $url)
+                {
+                    $requestMarkup .= '<p><a href="' . $url . '" target="_blank">Link to resource</a></p>';
+                }
+                break;
+        }
+        $requestMarkup .= '</div>';
+    }
 }
 echo $OUTPUT->box($requestMarkup);
 // Finish the page
