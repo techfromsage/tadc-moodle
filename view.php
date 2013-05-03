@@ -105,6 +105,37 @@ if($tadc->request_status === 'LIVE')
                 foreach($tadc_data['url'] as $url)
                 {
                     $requestMarkup .= '<p><a href="' . $url . '" target="_blank">Link to resource</a></p>';
+                    $requestMarkup .= '<p><form method="POST" action="/course/modedit.php">';
+                    $requestMarkup .= '<input type="hidden" name="add" value="url" />';
+                    $requestMarkup .= '<input type="hidden" name="course" value="' . $course->id . '" />';
+                    $requestMarkup .= '<input type="hidden" name="name" value="' . tadc_build_title_string($tadc) . '" />';
+                    $requestMarkup .= '<input type="hidden" name="intro" value="' . tadc_generate_html_citation($tadc) . '" />';
+                    $requestMarkup .= '<input type="hidden" name="section" value="' . $cm->section . '" />';
+                    $requestMarkup .= '<input type="submit" value="Create URL resource and add to course" />';
+                    $requestMarkup .= '</form>';
+                }
+                break;
+            case 'NewerEditionAvailable':
+                $requestMarkup .= '<p>There are newer editions of this resource available. Under the terms of copyright, you must use the most recent edition unless there is a justifiable pedagogical reason otherwise.</p>';
+                $tadc_data = json_decode($tadc->other_response_data, true);
+                if(@$tadc_data['locallyHeldEditionIds'])
+                {
+                    foreach($tadc_data['locallyHeldEditionIds'] as $localId)
+                    {
+                        $newEditionTadc = new stdClass();
+                        $newEditionTadc->type = $tadc->type;
+                        tadc_set_resource_values_from_tadc_metadata($newEditionTadc, $tadc_data['editions'][$localId]);
+                        $requestMarkup .= '<p>' . tadc_generate_html_citation($newEditionTadc) . '</p>';
+    //                    $requestMarkup .= '<p><a href="' . $url . '" target="_blank">Link to resource</a></p>';
+    //                    $requestMarkup .= '<p><form method="POST" action="/course/modedit.php">';
+    //                    $requestMarkup .= '<input type="hidden" name="add" value="url" />';
+    //                    $requestMarkup .= '<input type="hidden" name="course" value="' . $course->id . '" />';
+    //                    $requestMarkup .= '<input type="hidden" name="name" value="' . tadc_build_title_string($tadc) . '" />';
+    //                    $requestMarkup .= '<input type="hidden" name="intro" value="' . tadc_generate_html_citation($tadc) . '" />';
+    //                    $requestMarkup .= '<input type="hidden" name="section" value="' . $cm->section . '" />';
+    //                    $requestMarkup .= '<input type="submit" value="Create URL resource and add to course" />';
+    //                    $requestMarkup .= '</form>';
+                    }
                 }
                 break;
         }

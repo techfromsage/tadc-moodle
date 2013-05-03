@@ -103,7 +103,7 @@ function tadc_add_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
     {
         $tadc->reason_code = $response['reason_code'];
     }
-    foreach(array('url', 'editions', 'locallyHeldEditions', 'errors', 'duplicate_of', 'alternate_editions') as $key)
+    foreach(array('url', 'editions', 'locallyHeldEditionIds', 'errors', 'duplicate_of', 'alternate_editions') as $key)
     {
         if(isset($response[$key]))
         {
@@ -117,66 +117,7 @@ function tadc_add_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
 
     if(isset($response['metadata']))
     {
-        $md = $response['metadata'];
-        if(@$md['editionTitle'] && !@$tadc->container_title)
-        {
-            $tadc->container_title = $md['editionTitle'];
-        }
-        if(@$md['editionCreators'] && !empty($md['editionCreators']) && !@$tadc->container_creator)
-        {
-            $tadc->container_creator = implode('; ', $md['editionCreators']);
-        }
-        if($tadc->type === 'book' && @$md['isbn13'] && @!empty($md['isbn13']) && !@$tadc->container_identifier)
-        {
-            $tadc->container_identifier = 'isbn:' . $md['isbn13'][0];
-        }
-        if($tadc->type === 'journal' && @$md['issn'] && !@$tadc->container_identifier)
-        {
-            $tadc->container_identifier = 'issn:' . $md['issn'];
-        }
-        if(@$md['publisherStrings'] && !empty($md['publisherStrings']) && !@$tadc->publisher)
-        {
-            $tadc->publisher = $md['publisherStrings'][0];
-        }
-        if(@$md['publisher'] && !@$tadc->publisher)
-        {
-            $tadc->publisher = $md['publisher'];
-        }
-        if(@$md['editionDate'] && !@$tadc->publication_date)
-        {
-            $tadc->publication_date = $md['editionDate'];
-        }
-        if(@$md['sectionTitle'] && !@$tadc->section_title)
-        {
-            $tadc->section_title = $md['sectionTitle'];
-        }
-        if(@$md['sectionCreators'] && !empty($md['sectionCreators']) && !@$tadc->section_creator)
-        {
-            $tadc->section_creator = implode("; ", $md['sectionCreators']);
-        }
-        if(@$md['startPage'] && !@$tadc->start_page)
-        {
-            $tadc->start_page = $md['startPage'];
-        }
-        if(@$md['endPage'] && !@$tadc->end_page)
-        {
-            $tadc->end_page = $md['endPage'];
-        }
-        if(@$md['doi'] && !@$tadc->document_identifier)
-        {
-            $tadc->document_identifier = 'doi:' . $md['doi'];
-        } elseif(@$md['pmid'] && !@$tadc->document_identifier)
-        {
-            $tadc->document_identifier = 'pmid:' . $md['pmid'];
-        }
-        if(@$md['volume'] && !$tadc->volume)
-        {
-            $tadc->volume = $md['volume'];
-        }
-        if(@$md['issue'] && !$tadc->issue)
-        {
-            $tadc->issue = $md['issue'];
-        }
+        tadc_set_resource_values_from_tadc_metadata($tadc, $response['metadata']);
     }
     $tadc->name = tadc_build_title_string($tadc);
     $DB->update_record('tadc', $tadc);
@@ -486,57 +427,120 @@ function tadc_build_title_string($tadc)
 function tadc_generate_html_citation($tadc)
 {
     $requestMarkup = '';
-    if($tadc->section_creator && $tadc->section_creator != $tadc->container_creator)
+    if(@$tadc->section_creator && $tadc->section_creator != @$tadc->container_creator)
     {
         $requestMarkup .= $tadc->section_creator . ' ';
-    } elseif ((!$tadc->section_creator && $tadc->container_creator) || ($tadc->section_creator === $tadc->container_creator))
+    } elseif ((!@$tadc->section_creator && @$tadc->container_creator) || (@$tadc->section_creator && @$tadc->section_creator === @$tadc->container_creator))
     {
         $requestMarkup .= $tadc->container_creator . ' ';
     }
-    if($tadc->publication_date)
+    if(@$tadc->publication_date)
     {
         $requestMarkup .= $tadc->publication_date . ' ';
     }
-    if($tadc->section_title)
+    if(@$tadc->section_title)
     {
         $requestMarkup .= "'" . $tadc->section_title . "' ";
     }
-    if($tadc->type === 'book' && $tadc->section_title && ($tadc->container_title || $tadc->container_identifier))
+    if(@$tadc->type === 'book' && @$tadc->section_title && (@$tadc->container_title || @$tadc->container_identifier))
     {
         $requestMarkup .= ' in ';
     }
-    if($tadc->container_title)
+    if(@$tadc->container_title)
     {
         $requestMarkup .= '<em>' . $tadc->container_title . '</em> ';
-    } elseif($tadc->container_identifier)
+    } elseif(@$tadc->container_identifier)
     {
         $requestMarkup .= '<em>' . preg_replace('/^(\w*:)/e', 'strtoupper("$0") . " "', $tadc->container_identifier) . '</em>, ';
     }
-    if($tadc->volume)
+    if(@$tadc->volume)
     {
         $requestMarkup .= 'vol. ' . $tadc->volume . ', ';
     }
 
-    if($tadc->issue)
+    if(@$tadc->issue)
     {
         $requestMarkup .= 'no. ' . $tadc->issue . ', ';
     }
 
-    if($tadc->section_creator && $tadc->container_creator && ($tadc->section_creator !== $tadc->container_creator))
+    if(@$tadc->section_creator && @$tadc->container_creator && (@$tadc->section_creator !== @$tadc->container_creator))
     {
         $requestMarkup .= $tadc->container_creator . ' ';
     }
-    if($tadc->type === 'book' && $tadc->publisher)
+    if(@$tadc->type === 'book' && @$tadc->publisher)
     {
         $requestMarkup .= $tadc->publisher;
     }
-    if($tadc->start_page && $tadc->end_page)
+    if(@$tadc->start_page && @$tadc->end_page)
     {
         $requestMarkup .= 'pp. ' . $tadc->start_page . '-' . $tadc->end_page;
-    } elseif($tadc->start_page)
+    } elseif(@$tadc->start_page)
     {
         $requestMarkup .= 'p.' . $tadc->start_page;
     }
 
     return chop(trim($requestMarkup),",") . '.';
+}
+
+function tadc_set_resource_values_from_tadc_metadata(stdClass &$tadc, array $md)
+{
+    if(@$md['editionTitle'] && !@$tadc->container_title)
+    {
+        $tadc->container_title = $md['editionTitle'];
+    }
+    if(@$md['editionCreators'] && !empty($md['editionCreators']) && !@$tadc->container_creator)
+    {
+        $tadc->container_creator = implode('; ', $md['editionCreators']);
+    }
+    if($tadc->type === 'book' && @$md['isbn13'] && @!empty($md['isbn13']) && !@$tadc->container_identifier)
+    {
+        $tadc->container_identifier = 'isbn:' . $md['isbn13'][0];
+    }
+    if($tadc->type === 'journal' && @$md['issn'] && !@$tadc->container_identifier)
+    {
+        $tadc->container_identifier = 'issn:' . $md['issn'];
+    }
+    if(@$md['publisherStrings'] && !empty($md['publisherStrings']) && !@$tadc->publisher)
+    {
+        $tadc->publisher = $md['publisherStrings'][0];
+    }
+    if(@$md['publisher'] && !@$tadc->publisher)
+    {
+        $tadc->publisher = $md['publisher'];
+    }
+    if(@$md['editionDate'] && !@$tadc->publication_date)
+    {
+        $tadc->publication_date = $md['editionDate'];
+    }
+    if(@$md['sectionTitle'] && !@$tadc->section_title)
+    {
+        $tadc->section_title = $md['sectionTitle'];
+    }
+    if(@$md['sectionCreators'] && !empty($md['sectionCreators']) && !@$tadc->section_creator)
+    {
+        $tadc->section_creator = implode("; ", $md['sectionCreators']);
+    }
+    if(@$md['startPage'] && !@$tadc->start_page)
+    {
+        $tadc->start_page = $md['startPage'];
+    }
+    if(@$md['endPage'] && !@$tadc->end_page)
+    {
+        $tadc->end_page = $md['endPage'];
+    }
+    if(@$md['doi'] && !@$tadc->document_identifier)
+    {
+        $tadc->document_identifier = 'doi:' . $md['doi'];
+    } elseif(@$md['pmid'] && !@$tadc->document_identifier)
+    {
+        $tadc->document_identifier = 'pmid:' . $md['pmid'];
+    }
+    if(@$md['volume'] && !$tadc->volume)
+    {
+        $tadc->volume = $md['volume'];
+    }
+    if(@$md['issue'] && !$tadc->issue)
+    {
+        $tadc->issue = $md['issue'];
+    }
 }
