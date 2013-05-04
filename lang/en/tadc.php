@@ -36,6 +36,7 @@ $string['tadcpmid'] = 'PubMed ID';
 $string['tadcjournalrequestlink'] = 'Request a journal article';
 $string['tadcbookrequestlink'] = 'Request a chapter or section from a book';
 $string['tadcrequestformsubmittext'] = 'Submit request';
+$string['tadcrequestformresubmittext'] = 'Re-submit request with these values';
 $string['base_url'] = 'TADC location';
 $string['base_url_desc'] = 'URL of the Talis Aspire Digitised Content service (e.g. http://content.talisaspire.com/)';
 $string['shared_secret'] = 'Secret';

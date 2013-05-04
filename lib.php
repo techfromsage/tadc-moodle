@@ -71,54 +71,10 @@ function tadc_supports($feature) {
 function tadc_add_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
     global $DB;
 
-    if(@$tadc->doi)
-    {
-        $tadc->document_identifier = 'doi:' . $tadc->doi;
-    } elseif(@$tadc->pmid)
-    {
-        $tadc->document_identifier = 'pmid:' . $tadc->pmid;
-    }
-
-    if(@$tadc->isbn)
-    {
-        $tadc->container_identifier = 'isbn:' . $tadc->isbn;
-    } elseif(@$tadc->issn)
-    {
-        $tadc->container_identifier = 'issn:' . $tadc->issn;
-    }
-
+    tadc_form_identifiers_to_resource_identifiers($tadc);
     $tadc->id = $DB->insert_record('tadc', $tadc);
     $response = tadc_submit_request_form($tadc);
-
-    $other_response_data = array();
-    $id = explode("/", $response['id']);
-    $tadc->request_id = $id[count($id) - 1];
-    $tadc->request_status = $response['status'];
-    if(isset($response['message']))
-    {
-        $tadc->status_message = $response['message'];
-    }
-
-    if(isset($response['reason_code']))
-    {
-        $tadc->reason_code = $response['reason_code'];
-    }
-    foreach(array('url', 'editions', 'locallyHeldEditionIds', 'errors', 'duplicate_of', 'alternate_editions') as $key)
-    {
-        if(isset($response[$key]))
-        {
-            $other_response_data[$key] = $response[$key];
-        }
-    }
-    if(!empty($other_response_data))
-    {
-        $tadc->other_response_data = json_encode($other_response_data);
-    }
-
-    if(isset($response['metadata']))
-    {
-        tadc_set_resource_values_from_tadc_metadata($tadc, $response['metadata']);
-    }
+    tadc_update_resource_with_tadc_response($tadc, $response);
     $tadc->name = tadc_build_title_string($tadc);
     $DB->update_record('tadc', $tadc);
     return $tadc->id;
@@ -140,13 +96,22 @@ function tadc_update_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
 
     $tadc->timemodified = time();
     $tadc->id = $tadc->instance;
-    if($tadc->container_identifier)
-    {
-        $tadc->container_identifier = 'isbn:' . $tadc->container_identifier;
-    }
 
     # You may have to add extra stuff in here #
+    tadc_form_identifiers_to_resource_identifiers($tadc);
 
+    if(@$mform->get_data('resubmit'))
+    {
+        error_log('Are we even here?');
+        $tadc->request_status = null;
+        $tadc->status_message = null;
+        $tadc->reason_code = null;
+        $tadc->other_response_data = null;
+        $DB->update_record('tadc', $tadc);
+        $response = tadc_submit_request_form($tadc);
+        tadc_update_resource_with_tadc_response($tadc, $response);
+        $tadc->name = tadc_build_title_string($tadc);
+    }
     return $DB->update_record('tadc', $tadc);
 }
 
@@ -391,6 +356,10 @@ function tadc_submit_request_form($request)
     $params = tadc_build_request($request, $tadc->tenant_code);
     $params['svc.trackback'] = $tadc->trackback_endpoint . '&itemUri=' . $request->id;
     $params['svc.metadata'] = 'request';
+    if(@$request->tadc_id)
+    {
+        $params['ctx_id'] = "info:talisaspire/tadc:" . $tadc->tenant_code . ":moodle:" . $request->tadc_id;
+    }
     $client = new tadc($tadc->tadc_location . $tadc->tenant_code, $tadc->tadc_shared_secret);
     $response = $client->submit_request($params);
     return json_decode($response, true);
@@ -542,5 +511,111 @@ function tadc_set_resource_values_from_tadc_metadata(stdClass &$tadc, array $md)
     if(@$md['issue'] && !$tadc->issue)
     {
         $tadc->issue = $md['issue'];
+    }
+}
+
+function tadc_set_resource_values_from_tadc_edition(stdClass &$tadc, array $md)
+{
+    if(@$md['title'] && !@$tadc->container_title)
+    {
+        $tadc->container_title = $md['title'];
+    }
+    if(@$md['creators'] && !empty($md['creators']) && !@$tadc->container_creator)
+    {
+        $tadc->container_creator = implode('; ', $md['creators']);
+    }
+    if(@$md['identifiers']['isbn13'] && @!empty($md['identifiers']['isbn13']) && !@$tadc->container_identifier)
+    {
+        $tadc->container_identifier = 'isbn:' . $md['identifiers']['isbn13'][0];
+    }
+    if(@$md['publisherStrings'] && !empty($md['publisherStrings']) && !@$tadc->publisher)
+    {
+        $tadc->publisher = $md['publisherStrings'][0];
+    }
+    if(@$md['date'] && !@$tadc->publication_date)
+    {
+        $tadc->publication_date = $md['date'];
+    }
+}
+
+function tadc_create_new_tadc()
+{
+    $tadc = new stdClass();
+    $tadc->id = null;
+    $tadc->course_id = null;
+    $tadc->type = null;
+    $tadc->section_title = null;
+    $tadc->section_creator = null;
+    $tadc->start_page = null;
+    $tadc->end_page = null;
+    $tadc->container_title = null;
+    $tadc->document_identifier = null;
+    $tadc->container_identifier = null;
+    $tadc->publication_date = null;
+    $tadc->volume = null;
+    $tadc->issue = null;
+    $tadc->publisher = null;
+    $tadc->needed_by = null;
+    $tadc->tadc_id = null;
+    $tadc->status_message = null;
+    $tadc->request_status = null;
+    $tadc->bundle_url = null;
+    $tadc->name = null;
+    $tadc->container_creator = null;
+    $tadc->reason_code = null;
+    $tadc->other_response_data = null;
+    return $tadc;
+}
+
+function tadc_form_identifiers_to_resource_identifiers(stdClass &$tadc)
+{
+    if(@$tadc->doi)
+    {
+        $tadc->document_identifier = 'doi:' . $tadc->doi;
+    } elseif(@$tadc->pmid)
+    {
+        $tadc->document_identifier = 'pmid:' . $tadc->pmid;
+    }
+
+    if(@$tadc->isbn)
+    {
+        $tadc->container_identifier = 'isbn:' . $tadc->isbn;
+    } elseif(@$tadc->issn)
+    {
+        $tadc->container_identifier = 'issn:' . $tadc->issn;
+    }
+}
+
+function tadc_update_resource_with_tadc_response(stdClass &$tadc, array $response)
+{
+
+    $other_response_data = array();
+    $id = explode("/", $response['id']);
+    $tadc->request_id = $id[count($id) - 1];
+    $tadc->request_status = $response['status'];
+    if(isset($response['message']))
+    {
+        $tadc->status_message = $response['message'];
+    }
+
+    if(isset($response['reason_code']))
+    {
+        $tadc->reason_code = $response['reason_code'];
+    }
+    foreach(array('url', 'editions', 'locallyHeldEditionIds', 'errors', 'duplicate_of', 'alternate_editions') as $key)
+    {
+        if(isset($response[$key]))
+        {
+            $other_response_data[$key] = $response[$key];
+        }
+    }
+    if(!empty($other_response_data))
+    {
+        $tadc->other_response_data = json_encode($other_response_data);
+    }
+
+    if(isset($response['metadata']))
+    {
+        tadc_set_resource_values_from_tadc_metadata($tadc, $response['metadata']);
     }
 }

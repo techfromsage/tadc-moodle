@@ -49,6 +49,20 @@ class mod_tadc_mod_form extends moodleform_mod {
             }
         }
 
+        // If we're resubmitting the request with new values, populate our $data object with these
+        if(optional_param('tadc_resubmit', false, PARAM_BOOL))
+        {
+            $dummyTadc = tadc_create_new_tadc();
+            foreach($dummyTadc as $key=>$val)
+            {
+                if($form_val = optional_param('tadc_'.$key, null, PARAM_TEXT))
+                {
+                    $data->$key = $form_val;
+                }
+            }
+            $mform->addElement('hidden', 'resubmit', true);
+            $buttonText = get_string('tadcrequestformresubmittext', 'tadc');
+        }
         // filter typename
         if (!in_array($typename, $types)) {
             $typename = $types[0];
@@ -131,9 +145,12 @@ class mod_tadc_mod_form extends moodleform_mod {
 
         // add standard elements, common to all modules
         $this->standard_coursemodule_elements();
-
+        if(!isset($buttonText))
+        {
+            $buttonText = get_string('tadcrequestformsubmittext', 'tadc');
+        }
         // add standard buttons, common to all modules
-        $this->add_action_buttons(true, get_string('tadcrequestformsubmittext', 'tadc'), false);
+        $this->add_action_buttons(true, $buttonText, false);
 
     }
 

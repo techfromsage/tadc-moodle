@@ -122,19 +122,22 @@ if($tadc->request_status === 'LIVE')
                 {
                     foreach($tadc_data['locallyHeldEditionIds'] as $localId)
                     {
-                        $newEditionTadc = new stdClass();
-                        $newEditionTadc->type = $tadc->type;
-                        tadc_set_resource_values_from_tadc_metadata($newEditionTadc, $tadc_data['editions'][$localId]);
+                        $newEditionTadc = tadc_create_new_tadc();
+                        tadc_set_resource_values_from_tadc_edition($newEditionTadc, $tadc_data['editions'][$localId]);
                         $requestMarkup .= '<p>' . tadc_generate_html_citation($newEditionTadc) . '</p>';
-    //                    $requestMarkup .= '<p><a href="' . $url . '" target="_blank">Link to resource</a></p>';
-    //                    $requestMarkup .= '<p><form method="POST" action="/course/modedit.php">';
-    //                    $requestMarkup .= '<input type="hidden" name="add" value="url" />';
-    //                    $requestMarkup .= '<input type="hidden" name="course" value="' . $course->id . '" />';
-    //                    $requestMarkup .= '<input type="hidden" name="name" value="' . tadc_build_title_string($tadc) . '" />';
-    //                    $requestMarkup .= '<input type="hidden" name="intro" value="' . tadc_generate_html_citation($tadc) . '" />';
-    //                    $requestMarkup .= '<input type="hidden" name="section" value="' . $cm->section . '" />';
-    //                    $requestMarkup .= '<input type="submit" value="Create URL resource and add to course" />';
-    //                    $requestMarkup .= '</form>';
+                        $requestMarkup .= '<p><form method="POST" action="/course/modedit.php">';
+                        $requestMarkup .= '<input type="hidden" name="update" value="'. $cm->id . '" />';
+                        $requestMarkup .= '<input type="hidden" name="tadc_resubmit" value="true" />';
+                        foreach($newEditionTadc as $key=>$value)
+                        {
+                            if(!$value)
+                            {
+                                continue;
+                            }
+                            $requestMarkup .= '<input type="hidden" name="tadc_'. $key . '" value="' . $value . '" />';
+                        }
+                        $requestMarkup .= '<input type="submit" value="Resubmit with this edition" />';
+                        $requestMarkup .= '</form>';
                     }
                 }
                 break;
