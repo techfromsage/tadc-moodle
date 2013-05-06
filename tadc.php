@@ -16,7 +16,7 @@ class tadc {
     public function submit_request($params)
     {
         $params['res.key'] = $this->generate_hash($params);
-        return $this->_conn->post($this->_base_url . '/request/', $params, array('httpheader'=>array('Accept: application/json')));
+        return $this->_conn->post($this->_base_url . '/request/', $this->generate_query_string($params), array('httpheader'=>array('Accept: application/json')));
     }
 
     private function generate_hash(array $params)
@@ -29,5 +29,15 @@ class tadc {
             $values[] = $params[$key];
         }
         return md5(implode('|',$values));
+    }
+
+    private function generate_query_string(array $params)
+    {
+        $query = array();
+        foreach($params as $key=>$val)
+        {
+            array_push($query, $key . '=' . urlencode($val));
+        }
+        return implode('&', $query);
     }
 }

@@ -50,6 +50,11 @@ if ($id) {
 require_login($course, true, $cm);
 //$context = context_course::instance($cm->id);
 $context = get_context_instance(CONTEXT_MODULE, $cm->id);
+
+if($tadc->request_status === 'REJECTED' && $tadc->reason_code === 'InvalidRequest')
+{
+    redirect(new moodle_url('/course/modedit.php', array('update'=>$cm->id)));
+}
 $title = tadc_build_title_string($tadc);
 add_to_log($course->id, 'tadc', 'view', "view.php?id={$cm->id}", $title, $cm->id);
 
@@ -94,59 +99,113 @@ if($tadc->request_status === 'LIVE')
         $requestMarkup .= '<dt>Reason</dt><dd>' . $tadc->status_message . '</dd>';
     }
     $requestMarkup .= '</dl></div>';
+    $requestMarkup .= '<div class="tadc-reason-code-message"><p>' . get_string($tadc->reason_code . 'Message', 'tadc'). '</p></div>';
+
     if($tadc->request_status === 'REJECTED')
     {
         $requestMarkup .= '<div class="tadc-rejection-options">';
         switch($tadc->reason_code)
         {
             case 'ElectronicCopyAvailable':
-                $requestMarkup .= '<p>Electronic versions of resource are available:</p>';
                 $tadc_data = json_decode($tadc->other_response_data, true);
                 foreach($tadc_data['url'] as $url)
                 {
                     $requestMarkup .= '<p><a href="' . $url . '" target="_blank">Link to resource</a></p>';
                     $requestMarkup .= '<p><form method="POST" action="/course/modedit.php">';
                     $requestMarkup .= '<input type="hidden" name="add" value="url" />';
+                    $requestMarkup .= '<input type="hidden" name="update" value="0" />';
+                    $requestMarkup .= '<input type="hidden" name="modulename" value="url" />';
+                    $requestMarkup .= '<input type="hidden" name="instance" value="" />';
                     $requestMarkup .= '<input type="hidden" name="course" value="' . $course->id . '" />';
                     $requestMarkup .= '<input type="hidden" name="name" value="' . tadc_build_title_string($tadc) . '" />';
-                    $requestMarkup .= '<input type="hidden" name="intro" value="' . tadc_generate_html_citation($tadc) . '" />';
-                    $requestMarkup .= '<input type="hidden" name="section" value="' . $cm->section . '" />';
+                    $requestMarkup .= '<input type="hidden" name="introeditor[text]" value="' . tadc_generate_html_citation($tadc) . '" />';
+                    $requestMarkup .= '<input type="hidden" name="introeditor[format]" value="1" />';
+                    $requestMarkup .= '<input type="hidden" name="introeditor[itemid]" value="' . file_get_unused_draft_itemid() .'" />';
+                    $requestMarkup .= '<input type="hidden" name="section" value="' . ($cm->section - 1). '" />';
+                    $requestMarkup .= '<input type="hidden" name="sesskey" value="' . sesskey() . '" />';
+                    $requestMarkup .= '<input type="hidden" name="externalurl" value="' . $url . '" />';
+                    $requestMarkup .= '<input type="hidden" name="_qf__mod_url_mod_form" value="1" />';
+                    $requestMarkup .= '<input type="hidden" name="cmidnumber" value="" />';
                     $requestMarkup .= '<input type="submit" value="Create URL resource and add to course" />';
                     $requestMarkup .= '</form>';
                 }
                 break;
             case 'NewerEditionAvailable':
-                $requestMarkup .= '<p>There are newer editions of this resource available. Under the terms of copyright, you must use the most recent edition unless there is a justifiable pedagogical reason otherwise.</p>';
                 $tadc_data = json_decode($tadc->other_response_data, true);
                 if(@$tadc_data['locallyHeldEditionIds'])
                 {
                     foreach($tadc_data['locallyHeldEditionIds'] as $localId)
                     {
-                        $newEditionTadc = tadc_create_new_tadc();
-                        tadc_set_resource_values_from_tadc_edition($newEditionTadc, $tadc_data['editions'][$localId]);
-                        $requestMarkup .= '<p>' . tadc_generate_html_citation($newEditionTadc) . '</p>';
-                        $requestMarkup .= '<p><form method="POST" action="/course/modedit.php">';
-                        $requestMarkup .= '<input type="hidden" name="update" value="'. $cm->id . '" />';
-                        $requestMarkup .= '<input type="hidden" name="tadc_resubmit" value="true" />';
-                        foreach($newEditionTadc as $key=>$value)
+                        $requestMarkup .= tadc_generate_resubmit_form_from_tadc_edition($cm, $tadc_data['editions'][$localId]);
+                    }
+                }
+                break;
+            case 'NotHeldByLibrary':
+                $tadc_data = json_decode($tadc->other_response_data, true);
+                if(@$tadc_data['alternate_editions'])
+                {
+                    $requestMarkup .= '<p>' . get_string('alternate_editions_mesg', 'tadc') . '</p>';
+                    foreach(array_keys($tadc_data['alternate_editions']) as $format)
+                    {
+                        $requestMarkup .= '<p><strong>' . ucfirst($format) . '</strong></p>';
+                        foreach($tadc_data['alternate_editions'][$format] as $edition)
                         {
-                            if(!$value)
-                            {
-                                continue;
-                            }
-                            $requestMarkup .= '<input type="hidden" name="tadc_'. $key . '" value="' . $value . '" />';
+                            $requestMarkup .= tadc_generate_resubmit_form_from_tadc_edition($cm, $edition);
                         }
-                        $requestMarkup .= '<input type="submit" value="Resubmit with this edition" />';
-                        $requestMarkup .= '</form>';
+                    }
+                }
+                break;
+
+            case 'RequestNotPermissibleUnderRROLicence':
+                $tadc_data = json_decode($tadc->other_response_data, true);
+                if(@$tadc_data['alternate_editions'])
+                {
+                    $requestMarkup .= '<p>' . get_string('alternate_editions_mesg', 'tadc') . '</p>';
+                    foreach(array_keys($tadc_data['alternate_editions']) as $format)
+                    {
+                        $requestMarkup .= '<p><strong>' . ucfirst($format) . '</strong></p>';
+                        foreach($tadc_data['alternate_editions'][$format] as $edition)
+                        {
+                            $requestMarkup .= tadc_generate_resubmit_form_from_tadc_edition($cm, $edition);
+                        }
                     }
                 }
                 break;
         }
         $requestMarkup .= '</div>';
+        $requestMarkup .= '<div class="tadc-referral-form"><form method="post" action="refer.php">';
+        $requestMarkup .= '<h3>Proceed with request anyway</h3>';
+        $requestMarkup .= '<input type="hidden" name="id" value="'. $cm->id . '" />';
+        $requestMarkup .= '<input type="hidden" name="sesskey" value="'.sesskey().'" />';
+        $requestMarkup .= '<label for="referralMessage">Reason</label><br />';
+
+        $requestMarkup .= '<textarea id="referralMessage" name="referralMessage" rows="2" cols="50"></textarea>';
+        $requestMarkup .= '<p><input type="submit" value="Submit referral request" /></p>';
+        $requestMarkup .= '</form></div>';
     }
 }
 echo $OUTPUT->box($requestMarkup);
 // Finish the page
 echo $OUTPUT->footer();
 
+function tadc_generate_resubmit_form_from_tadc_edition(stdClass $cm, array $edition)
+{
+    $altEditionTadc = tadc_create_new_tadc();
+    tadc_set_resource_values_from_tadc_edition($altEditionTadc, $edition);
+    $form = '<p>' . tadc_generate_html_citation($altEditionTadc) . '</p>';
+    $form .= '<p><form method="POST" action="/course/modedit.php">';
+    $form .= '<input type="hidden" name="update" value="'. $cm->id . '" />';
+    $form .= '<input type="hidden" name="tadc_resubmit" value="true" />';
+    foreach($altEditionTadc as $key=>$value)
+    {
+        if(!$value)
+        {
+            continue;
+        }
+        $form .= '<input type="hidden" name="tadc_'. $key . '" value="' . $value . '" />';
+    }
+    $form .= '<input type="submit" value="Resubmit with this edition" />';
+    $form .= '</form>';
+    return $form;
+}
 

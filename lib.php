@@ -34,8 +34,10 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once(dirname(__FILE__) . '/tadc.php');
 
-/** example constant */
-//define('tadc_ULTIMATE_ANSWER', 42);
+if (class_exists('HTML_QuickForm')) {
+    HTML_QuickForm::registerRule('booksectionvalidated', 'function', '_booksection_validate');
+    HTML_QuickForm::registerRule('bookcontainervalidated', 'function', '_bookcontainer_validate');
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Moodle core API                                                            //
@@ -93,26 +95,29 @@ function tadc_add_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
  */
 function tadc_update_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
     global $DB;
-
     $tadc->timemodified = time();
     $tadc->id = $tadc->instance;
 
     # You may have to add extra stuff in here #
     tadc_form_identifiers_to_resource_identifiers($tadc);
 
-    if(@$mform->get_data('resubmit'))
+    if(($mform && $mform->get_data('resubmit')) || @$tadc->resubmit)
     {
-        error_log('Are we even here?');
         $tadc->request_status = null;
         $tadc->status_message = null;
         $tadc->reason_code = null;
         $tadc->other_response_data = null;
         $DB->update_record('tadc', $tadc);
-        $response = tadc_submit_request_form($tadc);
-        tadc_update_resource_with_tadc_response($tadc, $response);
-        $tadc->name = tadc_build_title_string($tadc);
+        $resource = $DB->get_record('tadc', array('id'=>$tadc->id));
+        if(@$tadc->referral_message)
+        {
+            $resource->referral_message = $tadc->referral_message;
+        }
+        $response = tadc_submit_request_form($resource);
+        tadc_update_resource_with_tadc_response($resource, $response);
+        $resource->name = tadc_build_title_string($resource);
     }
-    return $DB->update_record('tadc', $tadc);
+    return $DB->update_record('tadc', $resource);
 }
 
 /**
@@ -301,6 +306,14 @@ function tadc_resource_to_referent($resource)
     {
         $params['rft.au'] = implode("; ", $creators);
     }
+    if(@$resource->start_page)
+    {
+        $params['rft.spage'] = $resource->start_page;
+    }
+    if(@$resource->end_page)
+    {
+        $params['rft.epage'] = $resource->end_page;
+    }
     if(@$resource->needed_by)
     {
         $params['svc.needed_by'] = date_format_string($resource->needed_by, '%Y-%m-%d');
@@ -356,6 +369,11 @@ function tadc_submit_request_form($request)
     $params = tadc_build_request($request, $tadc->tenant_code);
     $params['svc.trackback'] = $tadc->trackback_endpoint . '&itemUri=' . $request->id;
     $params['svc.metadata'] = 'request';
+    if(@$request->referral_message)
+    {
+        $params['svc.refer'] = 'true';
+        $params['svc.message'] = $request->referral_message;
+    }
     if(@$request->tadc_id)
     {
         $params['ctx_id'] = "info:talisaspire/tadc:" . $tadc->tenant_code . ":moodle:" . $request->tadc_id;
@@ -438,7 +456,7 @@ function tadc_generate_html_citation($tadc)
     }
     if(@$tadc->type === 'book' && @$tadc->publisher)
     {
-        $requestMarkup .= $tadc->publisher;
+        $requestMarkup .= $tadc->publisher . ' ';
     }
     if(@$tadc->start_page && @$tadc->end_page)
     {
@@ -618,4 +636,9 @@ function tadc_update_resource_with_tadc_response(stdClass &$tadc, array $respons
     {
         tadc_set_resource_values_from_tadc_metadata($tadc, $response['metadata']);
     }
+}
+
+function _booksection_validate($field, $value)
+{
+    return false;
 }

@@ -35,4 +35,8 @@ function xmldb_tadc_upgrade($oldversion) {
 
         upgrade_mod_savepoint(true, 2013050201, 'tadc');
     }
+    if ($oldversion < 2013050604)
+    {
+        upgrade_mod_savepoint(true, 2013050604, 'tadc');
+    }
 }
