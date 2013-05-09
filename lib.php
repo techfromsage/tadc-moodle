@@ -100,8 +100,8 @@ function tadc_update_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
 
     # You may have to add extra stuff in here #
     tadc_form_identifiers_to_resource_identifiers($tadc);
-
-    if(($mform && $mform->get_data('resubmit')) || @$tadc->resubmit)
+    $instance = $DB->get_record('tadc', array('id'=>$tadc->instance));
+    if((!isset($instance->request_status) || $instance->request_status === 'REJECTED') && ($mform && $mform->get_data('resubmit')) || @$tadc->resubmit)
     {
         $tadc->request_status = null;
         $tadc->status_message = null;
@@ -116,8 +116,19 @@ function tadc_update_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
         $response = tadc_submit_request_form($resource);
         tadc_update_resource_with_tadc_response($resource, $response);
         $resource->name = tadc_build_title_string($resource);
+        if($resource->request_status === 'LIVE')
+        {
+            $visibility = 1;
+        } else {
+            $visibility = 0;
+        }
+
+        return $DB->update_record('tadc', $resource);
+    } else {
+        $tadc->name = tadc_build_title_string($tadc);
+        return $DB->update_record('tadc', $tadc);
     }
-    return $DB->update_record('tadc', $resource);
+
 }
 
 /**
@@ -316,7 +327,7 @@ function tadc_resource_to_referent($resource)
     }
     if(@$resource->needed_by)
     {
-        $params['svc.needed_by'] = date_format_string($resource->needed_by, '%Y-%m-%d');
+        $params['svc.neededby'] = date_format_string($resource->needed_by, '%Y-%m-%d');
     }
     return $params;
 }
@@ -324,11 +335,12 @@ function tadc_resource_to_referent($resource)
 function tadc_build_request($request, $tenant)
 {
     global $CFG, $DB, $COURSE, $USER;
-
-    $params = array_merge(array('url_ver'=>'Z39.88-2004', 'url_ctx_fmt'=>'info:ofi/fmt:kev:mtx:ctx'), tadc_resource_to_referent($request));
+    $ts = new DateTime();
+    $params = array_merge(array('url_ver'=>'Z39.88-2004', 'url_ctx_fmt'=>'info:ofi/fmt:kev:mtx:ctx', 'url_tim'=>$ts->format(DateTime::ISO8601)), tadc_resource_to_referent($request));
     $course = $DB->get_record('course', array('id' => $COURSE->id), '*', MUST_EXIST);
-    $params['rfr_id'] = 'info:talisaspire/tadc:' . $tenant . ':moodle:' . $COURSE->id;
 
+    $params['rfr_id'] = new moodle_url('/mod/tadc/view.php', array('t'=>$request->id));
+    $params['rfr.type'] = 'http://schemas.talis.com/tadc/v1/referrers/moodle/1';
     $enrolled = $DB->get_records_sql("
 
 SELECT c.id, u.id
@@ -376,7 +388,7 @@ function tadc_submit_request_form($request)
     }
     if(@$request->tadc_id)
     {
-        $params['ctx_id'] = "info:talisaspire/tadc:" . $tadc->tenant_code . ":moodle:" . $request->tadc_id;
+        $params['ctx_id'] = $tadc->tadc_location . $tadc->tenant_code . "/request/" . $request->tadc_id;
     }
     $client = new tadc($tadc->tadc_location . $tadc->tenant_code, $tadc->tadc_shared_secret);
     $response = $client->submit_request($params);
@@ -638,7 +650,18 @@ function tadc_update_resource_with_tadc_response(stdClass &$tadc, array $respons
     }
 }
 
-function _booksection_validate($field, $value)
-{
-    return false;
+function tadc_cm_info_dynamic(cm_info $cm) {
+    global $DB;
+    $context = get_context_instance(CONTEXT_MODULE, $cm->id);
+    if($cm->modname === 'tadc')
+    {
+        $tadc = $DB->get_record('tadc', array('id'=>$cm->instance));
+        if($tadc->request_status !== 'LIVE')
+        {
+            if(!has_capability('mod/tadc:updateinstance', $context))
+            {
+                $cm->set_user_visible(false);
+            }
+        }
+    }
 }

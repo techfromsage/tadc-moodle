@@ -127,12 +127,26 @@ class mod_tadc_mod_form extends moodleform_mod {
 
         if(!isset($buttonText))
         {
-            if($typename==='book')
+            $opts = array('add'=>'tadc');
+            if($course = optional_param('course', NULL, PARAM_INT))
             {
-                $mform->addElement('html', '<a href="' . new moodle_url('/course/modedit', array('add'=>'tadc', 'type'=>'journal')) . '">' . get_string('journalrequestlink', 'tadc') . '</a>');
-            } else {
-                $mform->addElement('html', '<a href="' . new moodle_url('/course/modedit', array('add'=>'tadc', 'type'=>'journal')) . '">' . get_string('bookrequestlink', 'tadc') . '</a>');
+                $opts['course'] = $course;
             }
+            if($section = optional_param('section', NULL, PARAM_INT))
+            {
+                $opts['section'] = $section;
+            }
+            if($return = optional_param('return', NULL, PARAM_INT))
+            {
+                $opts['return'] = $return;
+            }
+            if($sr = optional_param('sr', NULL, PARAM_INT))
+            {
+                $opts['sr'] = $sr;
+            }
+            $opts['type'] = ($typename === 'book') ? 'journal' : 'book';
+            $mform->addElement('html', '<a href="' . new moodle_url('/course/modedit', $opts) . '">' . get_string($opts['type'] . 'requestlink', 'tadc') . '</a>');
+
         }
 
 /// EXTRACT INFORMATION
@@ -216,6 +230,9 @@ class mod_tadc_mod_form extends moodleform_mod {
 
         // add standard elements, common to all modules
         $this->standard_coursemodule_elements();
+
+        $mform->setDefault('visible', '0');
+
         if(!isset($buttonText))
         {
             $buttonText = get_string('requestformsubmittext', 'tadc');

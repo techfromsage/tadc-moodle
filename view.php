@@ -108,6 +108,7 @@ if($tadc->request_status === 'LIVE')
         {
             case 'ElectronicCopyAvailable':
                 $tadc_data = json_decode($tadc->other_response_data, true);
+
                 foreach($tadc_data['url'] as $url)
                 {
                     $requestMarkup .= '<p><a href="' . $url . '" target="_blank">Link to resource</a></p>';
@@ -121,7 +122,7 @@ if($tadc->request_status === 'LIVE')
                     $requestMarkup .= '<input type="hidden" name="introeditor[text]" value="' . tadc_generate_html_citation($tadc) . '" />';
                     $requestMarkup .= '<input type="hidden" name="introeditor[format]" value="1" />';
                     $requestMarkup .= '<input type="hidden" name="introeditor[itemid]" value="' . file_get_unused_draft_itemid() .'" />';
-                    $requestMarkup .= '<input type="hidden" name="section" value="' . ($cm->section - 1). '" />';
+                    $requestMarkup .= '<input type="hidden" name="section" value="' . $DB->get_field('course_sections', 'section', array('id'=>$cm->section)). '" />';
                     $requestMarkup .= '<input type="hidden" name="sesskey" value="' . sesskey() . '" />';
                     $requestMarkup .= '<input type="hidden" name="externalurl" value="' . $url . '" />';
                     $requestMarkup .= '<input type="hidden" name="_qf__mod_url_mod_form" value="1" />';
