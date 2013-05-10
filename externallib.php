@@ -41,20 +41,33 @@ class local_tadc_external extends external_api {
         $params = self::validate_parameters(self::trackback_parameters(),
             array('itemUri' => $itemUri, 'request'=>$request, 'status'=>$status, 'key'=>$key, 'bundleId'=>$bundleId));
 
-        $resource = $DB->get_record('tadc', array('id'=>$itemUri));
-        if(!isset($resource->tadc_id))
+        $tadc_cfg = get_config('tadc');
+        $hmac_data = $itemUri.'|'.$request.'|'.$status;
+        if (!empty($bundleId))
         {
-            $resource->tadc_id = $request;
+            $hmac_data .= '|'.$bundleId;
         }
-        $resource->request_status = $status;
-        if($bundleId)
+
+        $localKey = hash_hmac('sha256', $hmac_data, $tadc_cfg->tadc_shared_secret);
+        if($localKey === $key)
         {
-            $resource->bundle_url = $bundleId;
+            $resource = $DB->get_record('tadc', array('id'=>$itemUri));
+            if(!isset($resource->tadc_id))
+            {
+                $resource->tadc_id = $request;
+            }
+            $resource->request_status = $status;
+            if($bundleId)
+            {
+                $resource->bundle_url = $bundleId;
+            }
+            $resource->name = tadc_build_title_string($resource);
+            //Note: don't forget to validate the context and check capabilities
+            return $DB->update_record('tadc', $resource);
+        } else {
+            error_log('Error: ' . $key . ' sent, ' . $localKey . ' expected');
+            return false;
         }
-        $resource->name = tadc_build_title_string($resource);
-        $DB->update_record('tadc', $resource);
-        //Note: don't forget to validate the context and check capabilities
-        return $DB->update_record('tadc', $resource);
     }
 
     /**
