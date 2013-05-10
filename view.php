@@ -90,7 +90,10 @@ if($tadc->request_status === 'LIVE')
 {
     $tadc_cfg = get_config('tadc');
     $requestMarkup .= '<div class="tadc-bundle-viewer-container">';
-    $requestMarkup .= '<p><a href="' . new moodle_url('/mod/tadc/download.php', array('id'=>$cm->id)) . '">Print/Download</a></p>';
+    if(has_capability('mod/tadc:updateinstance', $context) || is_enrolled($context, null, '', true))
+    {
+        $requestMarkup .= '<p><a href="' . new moodle_url('/mod/tadc/download.php', array('id'=>$cm->id)) . '">Print/Download</a></p>';
+    }
     $requestMarkup .= '<iframe class="tadc-bundle-viewer" id="tadc-bundle-viewer" width="100%" height="500" frameborder="0" src="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url .'"></iframe>';
     $requestMarkup .= '</div>';
 } elseif($tadc->request_status) {
