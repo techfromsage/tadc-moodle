@@ -420,7 +420,7 @@ function tadc_build_title_string($tadc)
     {
         $title .= 'p.' . $tadc->start_page;
     }
-    return $title;
+    return chop(trim($title),",");
 }
 
 function tadc_generate_html_citation($tadc)
@@ -622,8 +622,6 @@ function tadc_update_resource_with_tadc_response(stdClass &$tadc, array $respons
     $other_response_data = array();
     $id = explode("/", $response['id']);
     $tadc->request_id = $id[count($id) - 1];
-    error_log($response['id']);
-    error_log($id[count($id) - 1]);
     $tadc->request_status = $response['status'];
     if(isset($response['message']))
     {

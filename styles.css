@@ -1,2 +1,36 @@
-.tadc-invalid-request-message { border: thin, solid, black; color: red; }
-.tadc-warn { border: 1px solid #d66;     padding: 1px 6px;     width: 12.25em; }
+.tadc-invalid-request-message {
+    color: red;
+}
+
+.tadc-warn {
+    border: 1px solid #d66;
+    padding: 1px 6px;
+    width: 12.25em;
+}
+.tadc-download-link { text-align: right;}
+.tadc-request-metadata {
+    padding: 10px;
+    font-size: x-large;
+    text-align: center;
+}
+.tadc-bundle-viewer-container {
+    padding: 10px;
+}
+div.tadc-referral-form {
+    border-top: thin #000000 solid;
+}
+
+div.tadc-alt-url-option, div.tadc-alt-edition-option
+{
+    border-top: thin #808080 solid;
+    padding: 10px;
+}
+
+.tadc-reason-code-message {
+    font-size: large;
+}
+
+.tadc-request-status dl { float:left; width:100%; }
+.tadc-request-status dt,dd { float:left; width: 50px; margin:0; padding:0; }
+.tadc-request-status dt { padding-right:0.5em; font-weight: bold; }
+.tadc-alt-edition-format-header { font-weight: bold;}

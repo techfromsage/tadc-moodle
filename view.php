@@ -89,19 +89,22 @@ $requestMarkup .= '</div>';
 if($tadc->request_status === 'LIVE')
 {
     $tadc_cfg = get_config('tadc');
-    $requestMarkup .= '<div class="tadc-bundle-viewer-container">';
-    if(has_capability('mod/tadc:updateinstance', $context) || is_enrolled($context, null, '', true))
-    {
-        $requestMarkup .= '<p><a href="' . new moodle_url('/mod/tadc/download.php', array('id'=>$cm->id)) . '">Print/Download</a></p>';
-    }
+
     if(isloggedin())
     {
+        $requestMarkup .= '<div class="tadc-bundle-viewer-container yui3-g">';
         $key = hash_hmac('sha256', '/' . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url.http_build_query(array('userId'=>$USER->username)).date('Ymd'), $tadc_cfg->tadc_shared_secret);
-        $requestMarkup .= '<p><a href="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '">Click here if content does not load below.</a></p>';
-        $requestMarkup .= '<iframe class="tadc-bundle-viewer" id="tadc-bundle-viewer" width="100%" height="500" frameborder="0" src="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '?key='. $key .'&userId=' . $USER->username . '"></iframe>';
+        $requestMarkup .= '<div class="yui3-u-1-2"><a href="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '">Click here if content does not load below.</a></div>';
+        if(has_capability('mod/tadc:updateinstance', $context) || is_enrolled($context, null, '', true))
+        {
+            $requestMarkup .= '<div class="yui3-u-1-2 tadc-download-link"><a class="button" href="' . new moodle_url('/mod/tadc/download.php', array('id'=>$cm->id)) . '">Print/Download</a></div>';
+        }
+        $requestMarkup .= '</div><div class="yui3-g">';
+        $requestMarkup .= '<div class="yui3-u-1-1"><iframe class="tadc-bundle-viewer" id="tadc-bundle-viewer" width="100%" height="500" frameborder="0" src="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '?key='. $key .'&userId=' . $USER->username . '"></iframe></div>';
+        $requestMarkup .= '</div>';
+
     }
 
-    $requestMarkup .= '</div>';
 } elseif($tadc->request_status) {
     $requestMarkup .= '<div class="tadc-request-status"><dl><dt>Status</dt><dd>' . $tadc->request_status . '</dd>';
     if($tadc->status_message)
@@ -121,8 +124,9 @@ if($tadc->request_status === 'LIVE')
 
                 foreach($tadc_data['url'] as $url)
                 {
-                    $requestMarkup .= '<p><a href="' . $url . '" target="_blank">Link to resource</a></p>';
-                    $requestMarkup .= '<p><form method="POST" action="/course/modedit.php">';
+                    $requestMarkup .= '<div class="yui3-g tadc-alt-url-option">';
+                    $requestMarkup .= '<div class="yui3-u-1-2"><a href="' . $url . '" target="_blank">Link to resource</a></div>';
+                    $requestMarkup .= '<div class="yui3-u-1-2"><form method="POST" action="/course/modedit.php">';
                     $requestMarkup .= '<input type="hidden" name="add" value="url" />';
                     $requestMarkup .= '<input type="hidden" name="update" value="0" />';
                     $requestMarkup .= '<input type="hidden" name="modulename" value="url" />';
@@ -139,6 +143,7 @@ if($tadc->request_status === 'LIVE')
                     $requestMarkup .= '<input type="hidden" name="cmidnumber" value="" />';
                     $requestMarkup .= '<input type="submit" value="Create URL resource and add to course" />';
                     $requestMarkup .= '</form>';
+                    $requestMarkup .= '</div></div>';
                 }
                 break;
             case 'NewerEditionAvailable':
@@ -155,10 +160,10 @@ if($tadc->request_status === 'LIVE')
                 $tadc_data = json_decode($tadc->other_response_data, true);
                 if(@$tadc_data['alternate_editions'])
                 {
-                    $requestMarkup .= '<p>' . get_string('alternate_editions_mesg', 'tadc') . '</p>';
+                    $requestMarkup .= '<div class="yui3-g"><div class="yui3-u-1">' . get_string('alternate_editions_mesg', 'tadc') . '</div></div>';
                     foreach(array_keys($tadc_data['alternate_editions']) as $format)
                     {
-                        $requestMarkup .= '<p><strong>' . ucfirst($format) . '</strong></p>';
+                        $requestMarkup .= '<div class="yui3-g"><div class="yui3-u-1 tadc-alt-edition-format-header">' . ucfirst($format) . '</div></div>';
                         foreach($tadc_data['alternate_editions'][$format] as $edition)
                         {
                             $requestMarkup .= tadc_generate_resubmit_form_from_tadc_edition($cm, $edition);
@@ -171,10 +176,10 @@ if($tadc->request_status === 'LIVE')
                 $tadc_data = json_decode($tadc->other_response_data, true);
                 if(@$tadc_data['alternate_editions'])
                 {
-                    $requestMarkup .= '<p>' . get_string('alternate_editions_mesg', 'tadc') . '</p>';
+                    $requestMarkup .= '<div class="yui3-g"><div class="yui3-u-1">' . get_string('alternate_editions_mesg', 'tadc') . '</div></div>';
                     foreach(array_keys($tadc_data['alternate_editions']) as $format)
                     {
-                        $requestMarkup .= '<p><strong>' . ucfirst($format) . '</strong></p>';
+                        $requestMarkup .= '<div class="yui3-g"><div class="yui3-u-1 tadc-alt-edition-format-header">' . ucfirst($format) . '</div></div>';
                         foreach($tadc_data['alternate_editions'][$format] as $edition)
                         {
                             $requestMarkup .= tadc_generate_resubmit_form_from_tadc_edition($cm, $edition);
@@ -203,8 +208,9 @@ function tadc_generate_resubmit_form_from_tadc_edition(stdClass $cm, array $edit
 {
     $altEditionTadc = tadc_create_new_tadc();
     tadc_set_resource_values_from_tadc_edition($altEditionTadc, $edition);
-    $form = '<p>' . tadc_generate_html_citation($altEditionTadc) . '</p>';
-    $form .= '<p><form method="POST" action="/course/modedit.php">';
+    $form = '<div class="yui3-g tadc-alt-edition-option">';
+    $form .= '<div class="yui3-u-1-2">' . tadc_generate_html_citation($altEditionTadc) . '</div>';
+    $form .= '<div class="yui3-u-1-2"><form method="POST" action="/course/modedit.php">';
     $form .= '<input type="hidden" name="update" value="'. $cm->id . '" />';
     $form .= '<input type="hidden" name="tadc_resubmit" value="true" />';
     foreach($altEditionTadc as $key=>$value)
@@ -216,7 +222,7 @@ function tadc_generate_resubmit_form_from_tadc_edition(stdClass $cm, array $edit
         $form .= '<input type="hidden" name="tadc_'. $key . '" value="' . $value . '" />';
     }
     $form .= '<input type="submit" value="Resubmit with this edition" />';
-    $form .= '</form>';
+    $form .= '</form></div></div>';
     return $form;
 }
 
