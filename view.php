@@ -94,7 +94,13 @@ if($tadc->request_status === 'LIVE')
     {
         $requestMarkup .= '<p><a href="' . new moodle_url('/mod/tadc/download.php', array('id'=>$cm->id)) . '">Print/Download</a></p>';
     }
-    $requestMarkup .= '<iframe class="tadc-bundle-viewer" id="tadc-bundle-viewer" width="100%" height="500" frameborder="0" src="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url .'"></iframe>';
+    if(isloggedin())
+    {
+        $key = hash_hmac('sha256', '/' . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url.http_build_query(array('userId'=>$USER->username)).date('Ymd'), $tadc_cfg->tadc_shared_secret);
+        $requestMarkup .= '<p><a href="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '">Click here if content does not load below.</a></p>';
+        $requestMarkup .= '<iframe class="tadc-bundle-viewer" id="tadc-bundle-viewer" width="100%" height="500" frameborder="0" src="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '?key='. $key .'&userId=' . $USER->username . '"></iframe>';
+    }
+
     $requestMarkup .= '</div>';
 } elseif($tadc->request_status) {
     $requestMarkup .= '<div class="tadc-request-status"><dl><dt>Status</dt><dd>' . $tadc->request_status . '</dd>';

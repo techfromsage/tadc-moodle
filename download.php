@@ -23,7 +23,7 @@ if ($id) {
     $cm         = get_coursemodule_from_instance('tadc', $tadc->id, $course->id, false, MUST_EXIST);
 } elseif ($courseCode && $bundleId) {
     $course  = $DB->get_record('course', array('idnumber' => $courseCode), '*', MUST_EXIST);
-    $tadc     = $DB->get_record('tadc', array('course' => $course->id, 'bundle_url'=>$bundleId), '*', MUST_EXIST);
+    $tadc     = $DB->get_record_select('tadc', $DB->sql_compare_text('bundle_url') . " = ? AND course = ?", array($bundleId, $course->id), '*', MUST_EXIST);
     $cm         = get_coursemodule_from_instance('tadc', $tadc->id, $course->id, false, MUST_EXIST);
 } else {
     error('You must specify a course_module ID or an instance ID');
@@ -37,7 +37,9 @@ if(has_capability('mod/tadc:updateinstance', $context) || is_enrolled($context, 
 {
     $curl = new curl();
     $tadc_cfg = get_config('tadc');
-    $curl->setopt(array('HTTPAUTH'=>CURLAUTH_DIGEST, 'USERPWD'=>$course->shortname . ":" . hash_hmac('sha256', $course->shortname, $tadc_cfg->tadc_shared_secret)));
+
+    date_default_timezone_set('UTC');
+    $curl->setopt(array('HTTPAUTH'=>CURLAUTH_DIGEST, 'USERPWD'=>$course->shortname . ":" . hash_hmac('sha256', $course->shortname.$tadc->bundle_url.date('Y-m-d'), $tadc_cfg->tadc_shared_secret)));
     $response = $curl->get($tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '/download');
     $info = $curl->get_info();
     if(@$info['http_code'] === 200)
