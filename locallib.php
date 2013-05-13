@@ -28,21 +28,76 @@
  */
 
 defined('MOODLE_INTERNAL') || die();
-require_once("$CFG->dirroot/mod/tadc/lib.php");
+require_once(dirname(__FILE__)."/lib.php");
 
-/**
- * Does something really useful with the passed things
- *
- * @param array $things
- * @return object
- */
-//function tadc_do_something_useful(array $things) {
-//    return new stdClass();
-//}
-function generateRequestForm()
+
+function tadc_resource_to_referent($resource)
 {
-    global $CFG, $DB, $COURSE, $USER, $OUTPUT;
+    $params = array();
+    if(@$resource->section_title) { $params['rft.atitle'] = $resource->section_title; }
+    if($resource->type == 'book')
+    {
+        $params['rft_val_fmt'] = 'info:ofi/fmt:kev:mtx:book';
+        if(@$resource->container_title)
+        {
+            $params['rft.btitle'] = $resource->container_title;
+        }
+    } else {
+        $params['rft_val_fmt'] = 'info:ofi/fmt:kev:mtx:journal';
+        if(@$resource->container_title)
+        {
+            $params['rft.jtitle'] = $resource->container_title;
+        }
+    }
+
+    if(@$resource->container_identifier)
+    {
+        list($idType, $id) = explode(":", $resource->container_identifier, 2);
+        $params['rft.' . strtolower($idType)] = $id;
+    }
+    if(@$resource->document_identifier)
+    {
+        list($idType, $id) = explode(":", $resource->document_identifier, 2);
+        $params['rft.' . strtolower($idType)] = $id;
+        $params['rft_id'] = 'info:' . $idType . '/' . $id;
+    }
+    $creators = array();
+    if(@$resource->section_creator)
+    {
+        $creators[] = $resource->section_creator;
+    }
+    if(@$resource->container_creator)
+    {
+        $creators[] = $resource->container_creator;
+    }
+    if(!empty($creators))
+    {
+        $params['rft.au'] = implode("; ", $creators);
+    }
+    if(@$resource->start_page)
+    {
+        $params['rft.spage'] = $resource->start_page;
+    }
+    if(@$resource->end_page)
+    {
+        $params['rft.epage'] = $resource->end_page;
+    }
+    if(@$resource->needed_by)
+    {
+        $params['svc.neededby'] = date_format_string($resource->needed_by, '%Y-%m-%d');
+    }
+    return $params;
+}
+
+function tadc_build_request($request, $tenant)
+{
+    global $CFG, $DB, $COURSE, $USER;
+    $ts = new DateTime();
+    $params = array_merge(array('url_ver'=>'Z39.88-2004', 'url_ctx_fmt'=>'info:ofi/fmt:kev:mtx:ctx', 'url_tim'=>$ts->format(DateTime::ISO8601)), tadc_resource_to_referent($request));
     $course = $DB->get_record('course', array('id' => $COURSE->id), '*', MUST_EXIST);
+
+    $params['rfr_id'] = new moodle_url('/mod/tadc/view.php', array('t'=>$request->id));
+    $params['rfr.type'] = 'http://schemas.talis.com/tadc/v1/referrers/moodle/1';
     $enrolled = $DB->get_records_sql("
 
 SELECT c.id, u.id
@@ -58,28 +113,362 @@ where c.id = " . $COURSE->id);
     $enrolment = $DB->get_record('enrol', array('courseid'=>$COURSE->id, 'enrol'=>'manual'),'*', MUST_EXIST);
 
     $count = count($enrolled) > 0 ? count($enrolled) : null;
-    //$startDate = format_time('Y-m-d', $course->startdate);
-    //print_object($course->startdate);
+
     $startDate = date_format_string($course->startdate, '%Y-%m-%d');
     $endDate = date_format_string($course->startdate + $enrolment->enrolperiod, '%Y-%m-%d');
-    $requestParams = array('courseCode'=>$COURSE->shortname,
-        'courseName'=>$COURSE->fullname,
-        'startDate'=>$startDate,
-        'endDate'=>$endDate,
-        'requesterEmail'=>$USER->email,
-        'anticipatedStudentNumbers'=>$count,
-        'requesterName'=>$USER->firstname . ' ' . $USER->lastname
-    );
-
-    $params = array();
-
-    foreach($requestParams as $key=>$val)
+    $params = array_merge($params, array(
+        'rfe.code'=>$COURSE->shortname,
+        'rfe.name'=>$COURSE->fullname,
+        'rfe.sdate'=>$startDate,
+        'rfe.edate'=>$endDate,
+        'req.email'=>$USER->email,
+        'rfe.size'=>$count,
+        'req.name'=>$USER->firstname . ' ' . $USER->lastname
+    ));
+    if($params['rfe.size'] == 0) // or false, or null
     {
-        $params[] = $key . '=' . urlencode($val);
+        $params['rfe.size'] = 1;
     }
 
-    $formUrl = "http://drp.dev:8080/life/request/generate?" . implode("&", $params);
-    //$strrequired = get_string('required');
-    $config = get_config('tadc');
-    echo('<iframe class="tadc-request-form" id="tadc-request-form" width="100%" height="515" frameborder="0" src="' . $formUrl . '"></iframe>');
+    return $params;
+}
+function tadc_submit_request_form($request)
+{
+    $tadc = get_config('tadc');
+    $params = tadc_build_request($request, $tadc->tenant_code);
+    $params['svc.trackback'] = $tadc->trackback_endpoint . '&itemUri=' . $request->id;
+    $params['svc.metadata'] = 'request';
+    if(@$request->referral_message)
+    {
+        $params['svc.refer'] = 'true';
+        $params['svc.message'] = $request->referral_message;
+    }
+    if(@$request->tadc_id)
+    {
+        $params['ctx_id'] = $tadc->tadc_location . $tadc->tenant_code . "/request/" . $request->tadc_id;
+    }
+    $client = new tadcclient($tadc->tadc_location . $tadc->tenant_code, $tadc->tadc_shared_secret);
+    $response = $client->submit_request($params);
+    return json_decode($response, true);
+}
+
+function tadc_build_title_string($tadc)
+{
+    $title = '';
+    if(@$tadc->section_title)
+    {
+        $title .= $tadc->section_title;
+    }
+    if(@$tadc->section_title && (@$tadc->container_title || @$tadc->container_identifier))
+    {
+        $title .= ' from ';
+    }
+    if(@$tadc->container_title)
+    {
+        $title .= $tadc->container_title . ', ';
+    } elseif(@$tadc->container_identifier)
+    {
+        $title .= preg_replace('/^(\w*:)/e', 'strtoupper("$0") . " "', $tadc->container_identifier) . ', ';
+    }
+    if(@$tadc->start_page && @$tadc->end_page)
+    {
+        $title .= 'pp. ' . $tadc->start_page . '-' . $tadc->end_page;
+    } elseif(@$tadc->start_page)
+    {
+        $title .= 'p.' . $tadc->start_page;
+    }
+    return chop(trim($title),",");
+}
+
+function tadc_generate_html_citation($tadc)
+{
+    $requestMarkup = '';
+    if(@$tadc->section_creator && $tadc->section_creator != @$tadc->container_creator)
+    {
+        $requestMarkup .= $tadc->section_creator . ' ';
+    } elseif ((!@$tadc->section_creator && @$tadc->container_creator) || (@$tadc->section_creator && @$tadc->section_creator === @$tadc->container_creator))
+    {
+        $requestMarkup .= $tadc->container_creator . ' ';
+    }
+    if(@$tadc->publication_date)
+    {
+        $requestMarkup .= $tadc->publication_date . ' ';
+    }
+    if(@$tadc->section_title)
+    {
+        $requestMarkup .= "'" . $tadc->section_title . "' ";
+    }
+    if(@$tadc->type === 'book' && @$tadc->section_title && (@$tadc->container_title || @$tadc->container_identifier))
+    {
+        $requestMarkup .= ' in ';
+    }
+    if(@$tadc->container_title)
+    {
+        $requestMarkup .= '<em>' . $tadc->container_title . '</em>';
+        if(@$tadc->edition)
+        {
+            $requestMarkup .= ', ' . $tadc->edition;
+        }
+        $requestMarkup .= ', ';
+    } elseif(@$tadc->container_identifier)
+    {
+        $requestMarkup .= '<em>' . preg_replace('/^(\w*:)/e', 'strtoupper("$0") . " "', $tadc->container_identifier) . '</em>, ';
+    }
+    if(@$tadc->volume)
+    {
+        $requestMarkup .= 'vol. ' . $tadc->volume . ', ';
+    }
+
+    if(@$tadc->issue)
+    {
+        $requestMarkup .= 'no. ' . $tadc->issue . ', ';
+    }
+
+    if(@$tadc->section_creator && @$tadc->container_creator && (@$tadc->section_creator !== @$tadc->container_creator))
+    {
+        $requestMarkup .= $tadc->container_creator . ' ';
+    }
+    if(@$tadc->type === 'book' && @$tadc->publisher)
+    {
+        $requestMarkup .= $tadc->publisher . ' ';
+    }
+    if(@$tadc->start_page && @$tadc->end_page)
+    {
+        $requestMarkup .= 'pp. ' . $tadc->start_page . '-' . $tadc->end_page;
+    } elseif(@$tadc->start_page)
+    {
+        $requestMarkup .= 'p.' . $tadc->start_page;
+    }
+
+    return chop(trim($requestMarkup),",") . '.';
+}
+
+function tadc_set_resource_values_from_tadc_metadata(stdClass &$tadc, array $md)
+{
+    if(@$md['editionTitle'] && !@$tadc->container_title)
+    {
+        $tadc->container_title = $md['editionTitle'];
+    }
+    if(@$md['editionStatement'] && !@$tadc->edition)
+    {
+        $tadc->edition = $md['editionStatement'];
+    }
+    if(@$md['editionCreators'] && !empty($md['editionCreators']) && !@$tadc->container_creator)
+    {
+        $tadc->container_creator = implode('; ', $md['editionCreators']);
+    }
+    if($tadc->type === 'book' && @$md['isbn13'] && @!empty($md['isbn13']) && !@$tadc->container_identifier)
+    {
+        $tadc->container_identifier = 'isbn:' . $md['isbn13'][0];
+    }
+    if($tadc->type === 'journal' && @$md['issn'] && !@$tadc->container_identifier)
+    {
+        $tadc->container_identifier = 'issn:' . $md['issn'];
+    }
+    if(@$md['publisherStrings'] && !empty($md['publisherStrings']) && !@$tadc->publisher)
+    {
+        $tadc->publisher = $md['publisherStrings'][0];
+    }
+    if(@$md['publisher'] && !@$tadc->publisher)
+    {
+        $tadc->publisher = $md['publisher'];
+    }
+    if(@$md['editionDate'] && !@$tadc->publication_date)
+    {
+        $tadc->publication_date = $md['editionDate'];
+    }
+    if(@$md['sectionTitle'] && !@$tadc->section_title)
+    {
+        $tadc->section_title = $md['sectionTitle'];
+    }
+    if(@$md['sectionCreators'] && !empty($md['sectionCreators']) && !@$tadc->section_creator)
+    {
+        $tadc->section_creator = implode("; ", $md['sectionCreators']);
+    }
+    if(@$md['startPage'] && !@$tadc->start_page)
+    {
+        $tadc->start_page = $md['startPage'];
+    }
+    if(@$md['endPage'] && !@$tadc->end_page)
+    {
+        $tadc->end_page = $md['endPage'];
+    }
+    if(@$md['doi'] && !@$tadc->document_identifier)
+    {
+        $tadc->document_identifier = 'doi:' . $md['doi'];
+    } elseif(@$md['pmid'] && !@$tadc->document_identifier)
+    {
+        $tadc->document_identifier = 'pmid:' . $md['pmid'];
+    }
+    if(@$md['volume'] && !$tadc->volume)
+    {
+        $tadc->volume = $md['volume'];
+    }
+    if(@$md['issue'] && !$tadc->issue)
+    {
+        $tadc->issue = $md['issue'];
+    }
+}
+
+function tadc_set_resource_values_from_tadc_edition(stdClass &$tadc, array $md)
+{
+    if(@$md['title'] && !@$tadc->container_title)
+    {
+        $tadc->container_title = $md['title'];
+    }
+    if(@$md['creators'] && !empty($md['creators']) && !@$tadc->container_creator)
+    {
+        $tadc->container_creator = implode('; ', $md['creators']);
+    }
+    if(@$md['identifiers']['isbn13'] && @!empty($md['identifiers']['isbn13']) && !@$tadc->container_identifier)
+    {
+        $tadc->container_identifier = 'isbn:' . $md['identifiers']['isbn13'][0];
+    }
+    if(@$md['publisherStrings'] && !empty($md['publisherStrings']) && !@$tadc->publisher)
+    {
+        $tadc->publisher = $md['publisherStrings'][0];
+    }
+    if(@$md['date'] && !@$tadc->publication_date)
+    {
+        $tadc->publication_date = $md['date'];
+    }
+}
+
+function tadc_create_new_tadc()
+{
+    $tadc = new stdClass();
+    $tadc->id = null;
+    $tadc->course_id = null;
+    $tadc->type = null;
+    $tadc->section_title = null;
+    $tadc->section_creator = null;
+    $tadc->start_page = null;
+    $tadc->end_page = null;
+    $tadc->container_title = null;
+    $tadc->document_identifier = null;
+    $tadc->container_identifier = null;
+    $tadc->publication_date = null;
+    $tadc->volume = null;
+    $tadc->issue = null;
+    $tadc->publisher = null;
+    $tadc->needed_by = null;
+    $tadc->tadc_id = null;
+    $tadc->status_message = null;
+    $tadc->request_status = null;
+    $tadc->bundle_url = null;
+    $tadc->name = null;
+    $tadc->container_creator = null;
+    $tadc->reason_code = null;
+    $tadc->other_response_data = null;
+    return $tadc;
+}
+
+function tadc_form_identifiers_to_resource_identifiers(stdClass &$tadc)
+{
+    if(@$tadc->doi)
+    {
+        $tadc->document_identifier = 'doi:' . $tadc->doi;
+    } elseif(@$tadc->pmid)
+    {
+        $tadc->document_identifier = 'pmid:' . $tadc->pmid;
+    }
+
+    if(@$tadc->isbn)
+    {
+        $tadc->container_identifier = 'isbn:' . $tadc->isbn;
+    } elseif(@$tadc->issn)
+    {
+        $tadc->container_identifier = 'issn:' . $tadc->issn;
+    }
+}
+
+function tadc_update_resource_with_tadc_response(stdClass &$tadc, array $response)
+{
+
+    $other_response_data = array();
+    $id = explode("/", $response['id']);
+    $tadc->request_id = $id[count($id) - 1];
+    $tadc->request_status = $response['status'];
+    if(isset($response['message']))
+    {
+        $tadc->status_message = $response['message'];
+    }
+
+    if(isset($response['reason_code']))
+    {
+        $tadc->reason_code = $response['reason_code'];
+    }
+    foreach(array('url', 'editions', 'locallyHeldEditionIds', 'errors', 'duplicate_of', 'alternate_editions') as $key)
+    {
+        if(isset($response[$key]))
+        {
+            $other_response_data[$key] = $response[$key];
+        }
+    }
+    if(!empty($other_response_data))
+    {
+        $tadc->other_response_data = json_encode($other_response_data);
+    }
+
+    if(isset($response['metadata']))
+    {
+        tadc_set_resource_values_from_tadc_metadata($tadc, $response['metadata']);
+    }
+}
+
+function tadc_cm_info_dynamic(cm_info $cm) {
+    global $DB;
+    $context = get_context_instance(CONTEXT_MODULE, $cm->id);
+    if($cm->modname === 'tadc')
+    {
+        $tadc = $DB->get_record('tadc', array('id'=>$cm->instance));
+        if($tadc->request_status !== 'LIVE')
+        {
+            if(!has_capability('mod/tadc:updateinstance', $context))
+            {
+                $cm->set_user_visible(false);
+            }
+        }
+    }
+}
+
+class tadcclient {
+    private $_conn;
+    private $_base_url;
+    private $_key;
+
+    public function __construct($tadc_location, $shared_secret)
+    {
+        $this->_base_url = $tadc_location;
+        $this->_key = $shared_secret;
+        $this->_conn = new \Curl(array('cache'=>false, 'debug'=>false));
+    }
+
+    public function submit_request($params)
+    {
+        $params['res.key'] = $this->generate_hash($params);
+        return $this->_conn->post($this->_base_url . '/request/', $this->generate_query_string($params), array('httpheader'=>array('Accept: application/json')));
+    }
+
+    private function generate_hash(array $params)
+    {
+        $values = array($this->_key);
+        $keys = array_keys($params);
+        sort($keys);
+        foreach($keys as $key)
+        {
+            $values[] = $params[$key];
+        }
+        return md5(implode('|',$values));
+    }
+
+    private function generate_query_string(array $params)
+    {
+        $query = array();
+        foreach($params as $key=>$val)
+        {
+            array_push($query, $key . '=' . urlencode($val));
+        }
+        return implode('&', $query);
+    }
 }

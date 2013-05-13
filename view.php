@@ -31,6 +31,7 @@
 
 require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
 require_once(dirname(__FILE__).'/lib.php');
+require_once(dirname(__FILE__).'/locallib.php');
 
 $id = optional_param('id', 0, PARAM_INT); // course_module ID, or
 $t  = optional_param('t', 0, PARAM_INT);  // tadc instance ID - it should be named as the first character of the module
@@ -55,6 +56,7 @@ if($tadc->request_status === 'REJECTED' && $tadc->reason_code === 'InvalidReques
 {
     redirect(new moodle_url('/course/modedit.php', array('update'=>$cm->id)));
 }
+
 $title = tadc_build_title_string($tadc);
 add_to_log($course->id, 'tadc', 'view', "view.php?id={$cm->id}", $title, $cm->id);
 
@@ -67,17 +69,8 @@ $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
 
 
-// other things you may want to set - remove if not needed
-//$PAGE->set_cacheable(false);
-//$PAGE->set_focuscontrol('some-html-id');
-//$PAGE->add_body_class('tadc-'.$somevar);
-
 // Output starts here
 echo $OUTPUT->header();
-
-//if ($tadc->section_title) { // Conditions to show the intro can change to look for own settings or whatever
-//    echo $OUTPUT->box(format_module_intro('tadc', $tadc, $cm->id), 'generalbox mod_introbox', 'tadcintro');
-//}
 
 // Replace the following lines with you own code
 $requestMarkup = '<div class="tadc-request-metadata">';
@@ -100,18 +93,19 @@ if($tadc->request_status === 'LIVE')
             $requestMarkup .= '<div class="yui3-u-1-2 tadc-download-link"><a class="button" href="' . new moodle_url('/mod/tadc/download.php', array('id'=>$cm->id)) . '">Print/Download</a></div>';
         }
         $requestMarkup .= '</div><div class="yui3-g">';
-        $requestMarkup .= '<div class="yui3-u-1-1"><iframe class="tadc-bundle-viewer" id="tadc-bundle-viewer" width="100%" height="500" frameborder="0" src="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '?key='. $key .'&userId=' . $USER->username . '"></iframe></div>';
+        $requestMarkup .= '<div class="yui3-u-1"><iframe class="tadc-bundle-viewer" id="tadc-bundle-viewer" width="100%" height="500" frameborder="0" src="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '?key='. $key .'&userId=' . $USER->username . '"></iframe></div>';
         $requestMarkup .= '</div>';
+        $PAGE->requires->js_init_call('M.mod_tadc.resize_iframe');
 
     }
 
 } elseif($tadc->request_status) {
-    $requestMarkup .= '<div class="tadc-request-status"><dl><dt>Status</dt><dd>' . $tadc->request_status . '</dd>';
+    $requestMarkup .= '<div class="tadc-request-status yui3-g"><div class="yui3-u-1"><dl><dt>Status</dt><dd>' . $tadc->request_status . '</dd>';
     if($tadc->status_message)
     {
         $requestMarkup .= '<dt>Reason</dt><dd>' . $tadc->status_message . '</dd>';
     }
-    $requestMarkup .= '</dl></div>';
+    $requestMarkup .= '</dl></div></div>';
     $requestMarkup .= '<div class="tadc-reason-code-message"><p>' . get_string($tadc->reason_code . 'Message', 'tadc'). '</p></div>';
 
     if($tadc->request_status === 'REJECTED')

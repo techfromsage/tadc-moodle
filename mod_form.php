@@ -9,7 +9,7 @@ class mod_tadc_mod_form extends moodleform_mod {
 
     function definition() {
 
-        global $CFG, $OUTPUT;
+        global $CFG, $OUTPUT, $PAGE;
 
         // What is the user requesting? A book or journal
         $types = array('book', 'journal');
@@ -76,6 +76,7 @@ class mod_tadc_mod_form extends moodleform_mod {
                     }
                 }
             }
+            $mform->setShowAdvanced(true);
         }
 
         // If we're resubmitting the request with new values, populate our $data object with these
@@ -117,6 +118,7 @@ class mod_tadc_mod_form extends moodleform_mod {
             }
             $mform->addElement('hidden', 'resubmit', true);
             $buttonText = get_string('requestformresubmittext', 'tadc');
+            $mform->setShowAdvanced(true);
         }
         // filter typename
         if (!in_array($typename, $types)) {
@@ -145,7 +147,8 @@ class mod_tadc_mod_form extends moodleform_mod {
                 $opts['sr'] = $sr;
             }
             $opts['type'] = ($typename === 'book') ? 'journal' : 'book';
-            $mform->addElement('html', '<a href="' . new moodle_url('/course/modedit', $opts) . '">' . get_string($opts['type'] . 'requestlink', 'tadc') . '</a>');
+            $PAGE->requires->js_init_call('M.mod_tadc.form_init');
+            $mform->addElement('html', '<div class="yui3-g tadc-format-link"><div class="yui3-u-1"><a class="yui3-button" id="tadc-format-link" href="' . new moodle_url('/course/modedit', $opts) . '">' . get_string($opts['type'] . 'requestlink', 'tadc') . '</a></div></div>');
 
         }
 
@@ -168,6 +171,10 @@ class mod_tadc_mod_form extends moodleform_mod {
         $mform->setType('end_page', PARAM_TEXT);
 
         if ($typename==='journal') {
+            $mform->setAdvanced('section_title');
+            $mform->setAdvanced('section_creator');
+            $mform->setAdvanced('start_page');
+            $mform->setAdvanced('end_page');
             $mform->addHelpButton('section_title', 'journalsectiontitle', 'tadc');
             $mform->addHelpButton('start_page', 'journalstartpage', 'tadc');
             $mform->addElement('text', 'doi', get_string('doi', 'tadc'), array('size'=>64));
@@ -187,11 +194,15 @@ class mod_tadc_mod_form extends moodleform_mod {
         // title
         $mform->addElement('text', 'container_title', get_string($typename.'title', 'tadc'), array('size'=>'64'));
         $mform->setType('container_title', PARAM_TEXT);
+        $mform->setAdvanced('container_title');
 
         // author
         if ($typename==='book') {
+            $mform->addElement('text', 'edition', get_string('edition', 'tadc'), array('size'=>'64'));
+            $mform->setAdvanced('edition');
             $mform->addElement('text', 'container_creator', get_string('containercreator', 'tadc'), array('size'=>'64'));
             $mform->setType('container_creator', PARAM_TEXT);
+            $mform->setAdvanced('container_creator');
             //$mform->addRule('author', null, 'required', null, 'client');
             $mform->addElement('text', 'isbn', get_string('isbn', 'tadc'), array('size'=>'13'));
             $mform->addHelpButton('container_title', 'bookcontainertitle', 'tadc');
@@ -199,11 +210,14 @@ class mod_tadc_mod_form extends moodleform_mod {
             $mform->addHelpButton('isbn', 'isbn', 'tadc');
         } else {
             $mform->addElement('text', 'issn', 'ISSN', array('size'=>'9'));
+            $mform->setAdvanced('issn');
             // Volume or issue
             $mform->addElement('text', 'volume', get_string('volume', 'tadc'), array('size'=>'64'));
             $mform->setType('volume', PARAM_TEXT);
+            $mform->setAdvanced('volume');
             $mform->addElement('text', 'issue', get_string('issue', 'tadc'), array('size'=>'64'));
             $mform->setType('issue', PARAM_TEXT);
+            $mform->setAdvanced('issue');
             $mform->addHelpButton('container_title', 'journalcontainertitle', 'tadc');
             $mform->addHelpButton('issn', 'issn', 'tadc');
             $mform->addHelpButton('volume', 'volume', 'tadc');
@@ -214,10 +228,12 @@ class mod_tadc_mod_form extends moodleform_mod {
         $mform->addElement('text', 'publication_date', get_string('datepublished', 'tadc'), array('size'=>'64'));
         $mform->setType('publication_date', PARAM_TEXT);
         $mform->addHelpButton('publication_date', $typename.'datepublished', 'tadc');
+        $mform->setAdvanced('publication_date');
 
         // publisher
         $mform->addElement('text', 'publisher', get_string('publisher', 'tadc'), array('size'=>'64'));
         $mform->setType('publisher', PARAM_TEXT);
+        $mform->setAdvanced('publisher');
 
 
         //$mform->addRule('publishdate', null, 'required', null, 'client');

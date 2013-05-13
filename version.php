@@ -7,8 +7,3 @@ $module->cron      = 0;
 $module->component = 'mod_tadc';
 $module->maturity  = MATURITY_ALPHA;
 $module->release   = '.0001';
-
-//$module->dependencies = array(
-////    'mod_forum' => ANY_VERSION,
-////    'mod_data'  => TODO
-//);

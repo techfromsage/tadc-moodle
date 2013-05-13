@@ -48,6 +48,7 @@ $string['shared_secret_desc'] = 'Shared secret salt for verifying requests.  Thi
 $string['trackback_endpoint'] = 'Trackback location';
 $string['trackback_endpoint_desc'] = 'URL of trackback endpoint so TADC can send status updates.';
 $string['alternate_editions_mesg'] = 'The library holds the following editions, which may be available for digitisation:';
+$string['edition'] = 'Edition';
 
 /*
 * Messages for API reason codes:

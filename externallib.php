@@ -36,6 +36,7 @@ class local_tadc_external extends external_api {
      * @return string welcome message
      */
     public static function trackback($itemUri, $request, $status, $key, $bundleId=NULL) {
+        require_once(dirname(__FILE__).'/locallib.php');
         global $DB;
         //Parameters validation
         $params = self::validate_parameters(self::trackback_parameters(),
