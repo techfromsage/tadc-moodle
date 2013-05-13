@@ -39,4 +39,30 @@ function xmldb_tadc_upgrade($oldversion) {
     {
         upgrade_mod_savepoint(true, 2013050604, 'tadc');
     }
+
+    if($oldversion < 2013051301)
+    {
+        $table = new xmldb_table('tadc');
+        $field = new xmldb_field('edition', XMLDB_TYPE_TEXT, null, null, null, null, null, 'needed_by');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $field = new xmldb_field('bundle_url', XMLDB_TYPE_CHAR, 255, null, null, null, null, 'needed_by');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        } else {
+            $dbman->change_field_type($table, $field);
+        }
+
+        $index = new xmldb_index('bundle_url_idx', null, array('bundle_url'));
+        if(!$dbman->index_exists($table, $index))
+        {
+            $dbman->add_index($table, $index);
+        }
+        upgrade_mod_savepoint(true, 2013051301, 'tadc');
+    }
+    if ($oldversion < 2013051302)
+    {
+        upgrade_mod_savepoint(true, 2013051302, 'tadc');
+    }
 }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/tadc/db" VERSION="20130502" COMMENT="XMLDB file for Moodle mod/tadc"
+<XMLDB PATH="mod/tadc/db" VERSION="20130513" COMMENT="XMLDB file for Moodle mod/tadc"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -20,11 +20,12 @@
         <FIELD NAME="volume" TYPE="char" LENGTH="50" NOTNULL="false" SEQUENCE="false" PREVIOUS="publication_date" NEXT="issue"/>
         <FIELD NAME="issue" TYPE="char" LENGTH="50" NOTNULL="false" SEQUENCE="false" PREVIOUS="volume" NEXT="publisher"/>
         <FIELD NAME="publisher" TYPE="text" NOTNULL="false" SEQUENCE="false" PREVIOUS="issue" NEXT="needed_by"/>
-        <FIELD NAME="needed_by" TYPE="char" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Date digitization needed by" PREVIOUS="publisher" NEXT="tadc_id"/>
-        <FIELD NAME="tadc_id" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Talis Aspire Digitised Content request identifier" PREVIOUS="needed_by" NEXT="status_message"/>
+        <FIELD NAME="needed_by" TYPE="char" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Date digitization needed by" PREVIOUS="publisher" NEXT="edition"/>
+        <FIELD NAME="edition" TYPE="text" NOTNULL="false" SEQUENCE="false" PREVIOUS="needed_by" NEXT="tadc_id"/>
+        <FIELD NAME="tadc_id" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Talis Aspire Digitised Content request identifier" PREVIOUS="edition" NEXT="status_message"/>
         <FIELD NAME="status_message" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The complete, human readable, status message" PREVIOUS="tadc_id" NEXT="request_status"/>
         <FIELD NAME="request_status" TYPE="char" LENGTH="50" NOTNULL="false" SEQUENCE="false" COMMENT="Current TADC request status" PREVIOUS="status_message" NEXT="bundle_url"/>
-        <FIELD NAME="bundle_url" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Location of TADC bundle" PREVIOUS="request_status" NEXT="name"/>
+        <FIELD NAME="bundle_url" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Location of TADC bundle" PREVIOUS="request_status" NEXT="name"/>
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" PREVIOUS="bundle_url" NEXT="container_creator"/>
         <FIELD NAME="container_creator" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The author(s) or editor(s) of the book" PREVIOUS="name" NEXT="reason_code"/>
         <FIELD NAME="reason_code" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" PREVIOUS="container_creator" NEXT="other_response_data"/>
@@ -36,7 +37,8 @@
       <INDEXES>
         <INDEX NAME="request_status_idx" UNIQUE="false" FIELDS="request_status" NEXT="tadc_request_id_idx"/>
         <INDEX NAME="tadc_request_id_idx" UNIQUE="false" FIELDS="tadc_id" PREVIOUS="request_status_idx" NEXT="course_id_idx"/>
-        <INDEX NAME="course_id_idx" UNIQUE="false" FIELDS="course_id" PREVIOUS="tadc_request_id_idx"/>
+        <INDEX NAME="course_id_idx" UNIQUE="false" FIELDS="course_id" PREVIOUS="tadc_request_id_idx" NEXT="bundle_url_idx"/>
+        <INDEX NAME="bundle_url_idx" UNIQUE="false" FIELDS="bundle_url" PREVIOUS="course_id_idx"/>
       </INDEXES>
     </TABLE>
   </TABLES>
