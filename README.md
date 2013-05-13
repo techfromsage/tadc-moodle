@@ -13,31 +13,31 @@ $ cp -r tadc-moodle /{path}/{to}/{moodle}/mod/tadc
 
 1. Add the TADC module via Site administration -> Plugins -> Plugins overview -> Check for available updates
 2. Enable REST in webservices, if it's not already enabled:
-    a. Site administration -> Plugins -> Webservices -> Overview
-    b. Enable web services - set to 'yes'
-    c. Enable protocols: rest
-    d. Create a user to perform the webservices calls (e.g. talisaspire)
-    e. Check user capability (must have at least the following):
-        i. webservice/rest:use
-        ii. mod/tadc:updateinstance
-    f. Go to 'Select a service'
-        i. Make sure External service: trackback from plugin: mod_tadc is listed under "Built-in services"
-        ii. Click the 'Functions' link and check that the tadc_trackback function is listed
-        iii. Click on 'Authorised users' and add the user you created in 2.d. to the Authorised users list
-        iv. Click on 'Edit' and make sure that 'Enabled' is checked (and that it generally makes sense)
-    e. Go to Site administration -> Plugins -> Webservices -> Manage tokens
-        i. Click 'Add'
-        ii. Select the user your created in 2.d.
-        iii. For 'Service' select 'trackback'
-        iv. Do not add any restrictions.
-        v. Click 'Save changes'
-        vi. Note the saved token
+    1. Site administration -> Plugins -> Webservices -> Overview
+    2. Enable web services - set to 'yes'
+    3. Enable protocols: rest
+    4. Create a user to perform the webservices calls (e.g. talisaspire)
+    5. Check user capability (must have at least the following):
+        1. webservice/rest:use
+        2. mod/tadc:updateinstance
+    6. Go to 'Select a service'
+        1. Make sure External service: trackback from plugin: mod_tadc is listed under "Built-in services"
+        2. Click the 'Functions' link and check that the tadc_trackback function is listed
+        3. Click on 'Authorised users' and add the user you created in 2.d. to the Authorised users list
+        4. Click on 'Edit' and make sure that 'Enabled' is checked (and that it generally makes sense)
+    7. Go to Site administration -> Plugins -> Webservices -> Manage tokens
+        1. Click 'Add'
+        2. Select the user your created in 2.d.
+        3. For 'Service' select 'trackback'
+        4. Do not add any restrictions.
+        5. Click 'Save changes'
+        6. Note the saved token
 3.  Go to Site administration -> Plugins -> Plugins overview page, make sure 'Course readings' (mod_tadc) is enabled
-    a. Click on settings
-    b. Add your TADC tenant code (e.g. http://content.talisaspire.com/{something})
-    c. Add the TADC location (probably http://content.talisaspire.com/ unless you are using a CNAME)
-    d. Add your shared secret passphrase.  Make this as long and unique a phrase as possible.
-    e. Your trackback location should be: http(s)://{your_moodle_hostname}/webservice/rest/server.php?wstoken={token_string_from_2.e.vi}&wsfunction=tadc_trackback
+    1. Click on settings
+    2. Add your TADC tenant code (e.g. http://content.talisaspire.com/{something})
+    3. Add the TADC location (probably http://content.talisaspire.com/ unless you are using a CNAME)
+    4. Add your shared secret passphrase.  Make this as long and unique a phrase as possible.
+    5. Your trackback location should be: http(s)://{your_moodle_hostname}/webservice/rest/server.php?wstoken={token_string_from_2.e.vi}&wsfunction=tadc_trackback
 
 In theory, the module should now be set up.  'Digitisation request' should now appear as an option under 'Add an activity or resource'
 
