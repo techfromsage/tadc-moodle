@@ -25,7 +25,8 @@ class local_tadc_external extends external_api {
                 'itemUri' => new external_value(PARAM_INT, 'The ID of the Digitisation Request Resource'),
                 'request' => new external_value(PARAM_TEXT, 'The ID of the TADC request'),
                 'status' => new external_value(PARAM_TEXT, 'The status of the request'),
-                'key' => new external_value(PARAM_TEXT, 'The encoded key'),
+                'signature' => new external_value(PARAM_TEXT, 'The encoded signature'),
+                'api_key' => new external_value(PARAM_TEXT, 'The API key of the TADC client'),
                 'bundleId' => new external_value(PARAM_TEXT, 'The ID of the Bundle', 0)
             )
         );
@@ -35,12 +36,12 @@ class local_tadc_external extends external_api {
      * The function itself
      * @return string welcome message
      */
-    public static function trackback($itemUri, $request, $status, $key, $bundleId=NULL) {
+    public static function trackback($itemUri, $request, $status, $signature, $apiKey, $bundleId=NULL) {
         require_once(dirname(__FILE__).'/locallib.php');
         global $DB;
         //Parameters validation
         $params = self::validate_parameters(self::trackback_parameters(),
-            array('itemUri' => $itemUri, 'request'=>$request, 'status'=>$status, 'key'=>$key, 'bundleId'=>$bundleId));
+            array('itemUri' => $itemUri, 'request'=>$request, 'status'=>$status, 'signature'=>$signature, 'api_key'=>$apiKey, 'bundleId'=>$bundleId));
 
         $tadc_cfg = get_config('tadc');
         $hmac_data = $itemUri.'|'.$request.'|'.$status;
@@ -50,7 +51,12 @@ class local_tadc_external extends external_api {
         }
 
         $localKey = hash_hmac('sha256', $hmac_data, $tadc_cfg->tadc_shared_secret);
-        if($localKey === $key)
+        if($apiKey !== $tadc_cfg->api_key)
+        {
+            error_log('Error: API key ' . $apiKey . ' sent, ' . $tadc_cfg->api_key . ' expected');
+            return false;
+        }
+        if($localKey === $signature)
         {
             $resource = $DB->get_record('tadc', array('id'=>$itemUri));
             if(!isset($resource->tadc_id))
@@ -66,7 +72,7 @@ class local_tadc_external extends external_api {
             //Note: don't forget to validate the context and check capabilities
             return $DB->update_record('tadc', $resource);
         } else {
-            error_log('Error: ' . $key . ' sent, ' . $localKey . ' expected');
+            error_log('Error: signature ' . $signature . ' sent, ' . $localKey . ' expected');
             return false;
         }
     }

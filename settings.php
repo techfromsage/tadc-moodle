@@ -19,6 +19,10 @@ if ($ADMIN->fulltree) {
         get_string('base_url', 'mod_tadc'), get_string('base_url_desc', 'mod_tadc'),
         'http://content.talisaspire.com/', PARAM_TEXT));
 
+    $settings->add(new admin_setting_configtext('tadc/api_key',
+        get_string('api_key', 'mod_tadc'), get_string('api_key_desc', 'mod_tadc'),
+        '', PARAM_TEXT));
+
     $settings->add(new admin_setting_configtext('tadc/tadc_shared_secret',
         get_string('shared_secret', 'mod_tadc'), get_string('shared_secret_desc', 'mod_tadc'),
         '', PARAM_TEXT));

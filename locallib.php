@@ -136,7 +136,7 @@ function tadc_submit_request_form($request)
 {
     $tadc = get_config('tadc');
     $params = tadc_build_request($request, $tadc->tenant_code);
-    $params['svc.trackback'] = $tadc->trackback_endpoint . '&itemUri=' . $request->id;
+    $params['svc.trackback'] = $tadc->trackback_endpoint . '&itemUri=' . $request->id . '&api_key='.urlencode($tadc->api_key);
     $params['svc.metadata'] = 'request';
     if(@$request->referral_message)
     {
@@ -147,7 +147,7 @@ function tadc_submit_request_form($request)
     {
         $params['ctx_id'] = $tadc->tadc_location . $tadc->tenant_code . "/request/" . $request->tadc_id;
     }
-    $client = new tadcclient($tadc->tadc_location . $tadc->tenant_code, $tadc->tadc_shared_secret);
+    $client = new tadcclient($tadc->tadc_location . $tadc->tenant_code, $tadc->api_key, $tadc->tadc_shared_secret);
     $response = $client->submit_request($params);
     return json_decode($response, true);
 }
@@ -436,17 +436,20 @@ class tadcclient {
     private $_conn;
     private $_base_url;
     private $_key;
+    private $_secret;
 
-    public function __construct($tadc_location, $shared_secret)
+    public function __construct($tadc_location, $api_key, $shared_secret)
     {
         $this->_base_url = $tadc_location;
-        $this->_key = $shared_secret;
+        $this->_key = $api_key;
+        $this->_secret = $shared_secret;
         $this->_conn = new \Curl(array('cache'=>false, 'debug'=>false));
     }
 
     public function submit_request($params)
     {
-        $params['res.key'] = $this->generate_hash($params);
+        $params['res.signature'] = $this->generate_hash($params);
+        $params['res.api_key'] = $this->_key;
         return $this->_conn->post($this->_base_url . '/request/', $this->generate_query_string($params), array('httpheader'=>array('Accept: application/json')));
     }
 
@@ -459,7 +462,7 @@ class tadcclient {
         {
             $values[] = $params[$key];
         }
-        return md5(implode('|',$values));
+        return hash_hmac('sha256', implode('|',$values), $this->_secret);
     }
 
     private function generate_query_string(array $params)

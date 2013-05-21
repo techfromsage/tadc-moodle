@@ -49,6 +49,8 @@ $string['trackback_endpoint'] = 'Trackback location';
 $string['trackback_endpoint_desc'] = 'URL of trackback endpoint so TADC can send status updates.';
 $string['alternate_editions_mesg'] = 'The library holds the following editions, which may be available for digitisation:';
 $string['edition'] = 'Edition';
+$string['api_key'] = 'A valid TADC API key';
+$string['api_key_desc'] = 'Generate this key in the TADC Settings/Manage access keys menu';
 
 /*
 * Messages for API reason codes:

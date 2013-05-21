@@ -10,6 +10,13 @@ $ git clone git://github.com/talis/tadc-moodle.git
 
 $ cp -r tadc-moodle /{path}/{to}/{moodle}/mod/tadc
 
+### Setting up TADC:
+
+1. Log into your TADC instance and under the 'Admin' menu, select 'Settings'
+2. In the 'Services' tab, set the VLE Brand to 'Moodle' and the VLE location to base url of your Moodle instance and save your settings
+3. Unser the 'Admin' menu, select 'Access keys'.
+4. Add an access key and take note of the 'API key' and 'shared secret'.
+
 ### Setting up Moodle to submit requests to TADC and create resources within the course:
 
 1. Add the TADC module via Site administration -> Plugins -> Plugins overview -> Check for available updates
@@ -37,17 +44,11 @@ $ cp -r tadc-moodle /{path}/{to}/{moodle}/mod/tadc
     1. Click on settings
     2. Add your TADC tenant code (e.g. http://content.talisaspire.com/{something})
     3. Add the TADC location (probably http://content.talisaspire.com/ unless you are using a CNAME)
-    4. Add your shared secret passphrase.  Make this as long and unique a phrase as possible.
-    5. Your trackback location should be: http(s)://{your_moodle_hostname}/webservice/rest/server.php?wstoken={token_string_from_2.7.6}&wsfunction=tadc_trackback
+    4. Add your TADC API key.
+    5. Add your shared secret passphrase.
+    6. Your trackback location should be: http(s)://{your_moodle_hostname}/webservice/rest/server.php?wstoken={token_string_from_2.7.6}&wsfunction=tadc_trackback
 
 In theory, the module should now be set up.  'Digitisation request' should now appear as an option under 'Add an activity or resource'
-
-### Setting up TADC:
-
-1. Log into your TADC instance and under the 'Admin' menu, select 'Settings'
-2. In the 'Services' tab, set the VLE Brand to 'Moodle' and the VLE location to base url of your Moodle instance.
-3. In the 'Authentication' tab, set the 'Access Passphrase' to whatever you chose for the 'shared secret passphrase' (step 3.4) above.
-4. Save your settings.
 
 TADC should now be set up to accept requests from Moodle.
 

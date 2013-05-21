@@ -39,7 +39,7 @@ if(has_capability('mod/tadc:updateinstance', $context) || is_enrolled($context, 
     $tadc_cfg = get_config('tadc');
 
     date_default_timezone_set('UTC');
-    $curl->setopt(array('HTTPAUTH'=>CURLAUTH_DIGEST, 'USERPWD'=>$course->shortname . ":" . hash_hmac('sha256', $course->shortname.$tadc->bundle_url.date('Y-m-d'), $tadc_cfg->tadc_shared_secret)));
+    $curl->setopt(array('HTTPAUTH'=>CURLAUTH_DIGEST, 'USERPWD'=>$tadc_cfg->api_key . ":" . hash_hmac('sha256', $course->shortname.$tadc->bundle_url.date('Y-m-d'), $tadc_cfg->tadc_shared_secret)));
     $response = $curl->get($tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '/download');
     $info = $curl->get_info();
     if(@$info['http_code'] === 200)

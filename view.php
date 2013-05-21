@@ -93,7 +93,7 @@ if($tadc->request_status === 'LIVE')
             $requestMarkup .= '<div class="yui3-u-1-2 tadc-download-link"><a class="button" href="' . new moodle_url('/mod/tadc/download.php', array('id'=>$cm->id)) . '">Print/Download</a></div>';
         }
         $requestMarkup .= '</div><div class="yui3-g">';
-        $requestMarkup .= '<div class="yui3-u-1"><iframe class="tadc-bundle-viewer" id="tadc-bundle-viewer" width="100%" height="500" frameborder="0" src="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '?key='. $key .'&userId=' . $USER->username . '"></iframe></div>';
+        $requestMarkup .= '<div class="yui3-u-1"><iframe class="tadc-bundle-viewer" id="tadc-bundle-viewer" width="100%" height="500" frameborder="0" src="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '?api_key='. $tadc_cfg->api_key .'&signature=' . $key . '&userId=' . $USER->username . '"></iframe></div>';
         $requestMarkup .= '</div>';
         $PAGE->requires->js_init_call('M.mod_tadc.resize_iframe');
 
