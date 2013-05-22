@@ -27,6 +27,8 @@ if ($ADMIN->fulltree) {
         get_string('shared_secret', 'mod_tadc'), get_string('shared_secret_desc', 'mod_tadc'),
         '', PARAM_TEXT));
 
+    $settings->add(new admin_setting_configselect('tadc/course_code_field', get_string('course_code_field', 'mod_tadc'), get_string('course_code_field_desc', 'mod_tadc'), 'idnumber', array('idnumber','shortname')));
+
     $settings->add(new admin_setting_configtext('tadc/trackback_endpoint',
         get_string('trackback_endpoint', 'mod_tadc'), get_string('trackback_endpoint_desc', 'mod_tadc'),
         '', PARAM_TEXT));

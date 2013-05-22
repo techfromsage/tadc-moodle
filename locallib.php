@@ -147,7 +147,7 @@ function tadc_submit_request_form($request)
     {
         $params['ctx_id'] = $tadc->tadc_location . $tadc->tenant_code . "/request/" . $request->tadc_id;
     }
-    $client = new tadcclient($tadc->tadc_location . $tadc->tenant_code, $tadc->api_key, $tadc->tadc_shared_secret);
+    $client = new \mod_tadc_tadcclient($tadc->tadc_location . $tadc->tenant_code, $tadc->api_key, $tadc->tadc_shared_secret);
     $response = $client->submit_request($params);
     return json_decode($response, true);
 }
@@ -432,7 +432,7 @@ function tadc_cm_info_dynamic(cm_info $cm) {
     }
 }
 
-class tadcclient {
+class mod_tadc_tadcclient {
     private $_conn;
     private $_base_url;
     private $_key;

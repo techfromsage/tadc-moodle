@@ -51,6 +51,8 @@ $string['alternate_editions_mesg'] = 'The library holds the following editions, 
 $string['edition'] = 'Edition';
 $string['api_key'] = 'A valid TADC API key';
 $string['api_key_desc'] = 'Generate this key in the TADC Settings/Manage access keys menu';
+$string['course_code_field'] = 'Course code field';
+$string['course_code_field_desc'] = 'The Moodle Course Field that corresponds to the TADC course code';
 
 /*
 * Messages for API reason codes:

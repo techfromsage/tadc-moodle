@@ -12,7 +12,7 @@ if(!($id || $t || ($courseCode && $bundleId)))
 {
     print_error('cannotcallscript');
 }
-
+$tadc_cfg = get_config('tadc');
 if ($id) {
     $cm         = get_coursemodule_from_id('tadc', $id, 0, false, MUST_EXIST);
     $course     = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
@@ -22,7 +22,7 @@ if ($id) {
     $course     = $DB->get_record('course', array('id' => $tadc->course), '*', MUST_EXIST);
     $cm         = get_coursemodule_from_instance('tadc', $tadc->id, $course->id, false, MUST_EXIST);
 } elseif ($courseCode && $bundleId) {
-    $course  = $DB->get_record('course', array('idnumber' => $courseCode), '*', MUST_EXIST);
+    $course  = $DB->get_record('course', array($tadc_cfg->course_code_field => $courseCode), '*', MUST_EXIST);
     $tadc     = $DB->get_record_select('tadc', $DB->sql_compare_text('bundle_url') . " = ? AND course = ?", array($bundleId, $course->id), '*', MUST_EXIST);
     $cm         = get_coursemodule_from_instance('tadc', $tadc->id, $course->id, false, MUST_EXIST);
 } else {
@@ -36,7 +36,6 @@ $context = context_module::instance($cm->id);
 if(has_capability('mod/tadc:updateinstance', $context) || is_enrolled($context, null, '', true))
 {
     $curl = new curl();
-    $tadc_cfg = get_config('tadc');
 
     date_default_timezone_set('UTC');
     $curl->setopt(array('HTTPAUTH'=>CURLAUTH_DIGEST, 'USERPWD'=>$tadc_cfg->api_key . ":" . hash_hmac('sha256', $course->shortname.$tadc->bundle_url.date('Y-m-d'), $tadc_cfg->tadc_shared_secret)));
@@ -47,7 +46,7 @@ if(has_capability('mod/tadc:updateinstance', $context) || is_enrolled($context, 
         header('Content-type: ' . $info['content_type']);
         echo($response);
     } else {
-        http_response_code((@$info['http_code']) ? $info['http_code'] : 500);
+        header('HTTP/1.1 ' . (@$info['http_code']) ? $info['http_code'] : 500);
         echo($response);
     }
 } else {
