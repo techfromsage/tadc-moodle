@@ -416,22 +416,6 @@ function tadc_update_resource_with_tadc_response(stdClass &$tadc, array $respons
     }
 }
 
-function tadc_cm_info_dynamic(cm_info $cm) {
-    global $DB;
-    $context = get_context_instance(CONTEXT_MODULE, $cm->id);
-    if($cm->modname === 'tadc')
-    {
-        $tadc = $DB->get_record('tadc', array('id'=>$cm->instance));
-        if($tadc->request_status !== 'LIVE')
-        {
-            if(!has_capability('mod/tadc:updateinstance', $context))
-            {
-                $cm->set_user_visible(false);
-            }
-        }
-    }
-}
-
 class mod_tadc_tadcclient {
     private $_conn;
     private $_base_url;

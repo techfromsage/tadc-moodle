@@ -68,8 +68,8 @@ $PAGE->set_title(format_string($title));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
 
+require_capability('mod/tadc:view', $context);// Output starts here
 
-// Output starts here
 echo $OUTPUT->header();
 
 // Replace the following lines with you own code

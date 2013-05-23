@@ -47,6 +47,7 @@ function tadc_supports($feature) {
     switch($feature) {
         case FEATURE_MOD_INTRO:         return false;
         case FEATURE_MOD_ARCHETYPE:     return MOD_ARCHETYPE_RESOURCE;
+        case FEATURE_BACKUP_MOODLE2:    return true;
         default:                        return null;
     }
 }
@@ -111,13 +112,6 @@ function tadc_update_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
         $response = tadc_submit_request_form($resource);
         tadc_update_resource_with_tadc_response($resource, $response);
         $resource->name = tadc_build_title_string($resource);
-        if($resource->request_status === 'LIVE')
-        {
-            $visibility = 1;
-        } else {
-            $visibility = 0;
-        }
-
         return $DB->update_record('tadc', $resource);
     } else {
         $tadc->name = tadc_build_title_string($tadc);
@@ -238,4 +232,20 @@ function tadc_cron () {
  */
 function tadc_get_extra_capabilities() {
     return array();
+}
+
+function tadc_cm_info_dynamic(cm_info $cm) {
+    global $DB;
+    $context = get_context_instance(CONTEXT_MODULE, $cm->id);
+    if($cm->modname === 'tadc')
+    {
+        $tadc = $DB->get_record('tadc', array('id'=>$cm->instance));
+        if($tadc->request_status !== 'LIVE')
+        {
+            if(!has_capability('mod/tadc:updateinstance', $context))
+            {
+                $cm->set_user_visible(false);
+            }
+        }
+    }
 }

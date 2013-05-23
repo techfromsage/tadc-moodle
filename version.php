@@ -1,7 +1,7 @@
 <?php
 defined('MOODLE_INTERNAL') || die();
 
-$module->version   = 2013051302;
+$module->version   = 2013052303;
 $module->requires  = 2010112400; // See http://docs.moodle.org/dev/Moodle_Versions
 $module->cron      = 0;
 $module->component = 'mod_tadc';
