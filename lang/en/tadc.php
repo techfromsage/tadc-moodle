@@ -16,6 +16,7 @@ $string['pluginname'] = 'Course reading';
 $string['tadc:addinstance'] = 'Add course reading';
 $string['tadc:updateinstance'] = 'Update course reading';
 $string['tadc:view'] = 'View course reading';
+$string['tadc:download'] = 'Download course reading';
 $string['daterequired'] = 'Needed by';
 $string['bookheader'] = 'Book information';
 $string['journalheader'] = 'Journal information';

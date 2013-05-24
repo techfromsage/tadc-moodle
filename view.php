@@ -68,8 +68,6 @@ $PAGE->set_title(format_string($title));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
 
-require_capability('mod/tadc:view', $context);// Output starts here
-
 echo $OUTPUT->header();
 
 // Replace the following lines with you own code
@@ -83,12 +81,12 @@ if($tadc->request_status === 'LIVE')
 {
     $tadc_cfg = get_config('tadc');
 
-    if(isloggedin())
+    if(has_capability('mod/tadc:view', $context))
     {
         $requestMarkup .= '<div class="tadc-bundle-viewer-container yui3-g">';
         $key = hash_hmac('sha256', '/' . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url.http_build_query(array('userId'=>$USER->username)).date('Ymd'), $tadc_cfg->tadc_shared_secret);
         $requestMarkup .= '<div class="yui3-u-1-2"><a href="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '">Click here if content does not load below.</a></div>';
-        if(has_capability('mod/tadc:updateinstance', $context) || is_enrolled($context, null, '', true))
+        if(has_capability('mod/tadc:download', $context))
         {
             $requestMarkup .= '<div class="yui3-u-1-2 tadc-download-link"><a class="button" href="' . new moodle_url('/mod/tadc/download.php', array('id'=>$cm->id)) . '">Print/Download</a></div>';
         }

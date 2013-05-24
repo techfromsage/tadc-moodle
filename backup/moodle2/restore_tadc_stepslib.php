@@ -23,4 +23,20 @@ class restore_tadc_activity_structure_step extends restore_activity_structure_st
         // Return the paths wrapped into standard activity structure
         return $this->prepare_activity_structure($paths);
     }
+
+    protected function process_tadc($data) {
+        global $DB;
+
+        $data = (object)$data;
+        $oldid = $data->id;
+        $data->course = $this->get_courseid();
+
+        // insert the url record
+        $newitemid = $DB->insert_record('tadc', $data);
+        // immediately after inserting "activity" record, call this
+        $this->apply_activity_instance($newitemid);
+    }
+
+    protected function after_execute() {
+    }
 }

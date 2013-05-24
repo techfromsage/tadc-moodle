@@ -21,9 +21,27 @@ $capabilities = array(
     ),
     'mod/tadc:view'=> array(
         'captype' => 'read',
+        'riskbitmask' => 0,
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
+            'student' => CAP_ALLOW,
+            'user'=>CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
             'guest' => CAP_PROHIBIT
+
+        )
+    ),
+    'mod/tadc:download'=> array(
+        'captype' => 'read',
+        'riskbitmask' => 0,
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'student' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+            'guest' => CAP_PROHIBIT
+
         )
     )
 );

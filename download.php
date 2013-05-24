@@ -33,23 +33,20 @@ require_login($course, true, $cm);
 global $USER;
 //$context = get_context_instance(CONTEXT_MODULE, $cm->id);
 $context = context_module::instance($cm->id);
-if(has_capability('mod/tadc:updateinstance', $context) || is_enrolled($context, null, '', true))
-{
-    $curl = new curl();
+require_capability('mod/tadc:download', $context);
 
-    date_default_timezone_set('UTC');
-    $curl->setopt(array('HTTPAUTH'=>CURLAUTH_DIGEST, 'USERPWD'=>$tadc_cfg->api_key . ":" . hash_hmac('sha256', $course->shortname.$tadc->bundle_url.date('Y-m-d'), $tadc_cfg->tadc_shared_secret)));
-    $response = $curl->get($tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '/download');
-    $info = $curl->get_info();
-    if(@$info['http_code'] === 200)
-    {
-        header('Content-type: ' . $info['content_type']);
-        echo($response);
-    } else {
-        header('HTTP/1.1 ' . (@$info['http_code']) ? $info['http_code'] : 500);
-        echo($response);
-    }
+$curl = new curl();
+
+date_default_timezone_set('UTC');
+$curl->setopt(array('HTTPAUTH'=>CURLAUTH_DIGEST, 'USERPWD'=>$tadc_cfg->api_key . ":" . hash_hmac('sha256', $course->shortname.$tadc->bundle_url.date('Y-m-d'), $tadc_cfg->tadc_shared_secret)));
+$response = $curl->get($tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '/download');
+$info = $curl->get_info();
+if(@$info['http_code'] === 200)
+{
+    header('Content-type: ' . $info['content_type']);
+    echo($response);
 } else {
-    header("HTTP/1.1 403");
-    echo("Unauthorized to download file");
+    header('HTTP/1.1 ' . (@$info['http_code']) ? $info['http_code'] : 500);
+    echo($response);
 }
+
