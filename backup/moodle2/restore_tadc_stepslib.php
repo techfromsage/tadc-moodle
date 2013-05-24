@@ -1,13 +1,6 @@
 <?php
 /**
- * @package moodlecore
- * @subpackage backup-moodle2
- * @copyright 2010 onwards Eloy Lafuente (stronk7) {@link http://stronk7.com}
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
-/**
- * Define all the restore steps that will be used by the restore_url_activity_task
+ * Define all the restore steps that will be used by the restore_tadc_activity_task
  */
 
 /**
@@ -16,7 +9,6 @@
 class restore_tadc_activity_structure_step extends restore_activity_structure_step {
 
     protected function define_structure() {
-
         $paths = array();
         $paths[] = new restore_path_element('tadc', '/activity/tadc');
 
@@ -38,5 +30,6 @@ class restore_tadc_activity_structure_step extends restore_activity_structure_st
     }
 
     protected function after_execute() {
+        $this->add_related_files('mod_tadc', null, null);
     }
 }

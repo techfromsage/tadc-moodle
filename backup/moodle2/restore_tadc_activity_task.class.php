@@ -1,10 +1,4 @@
 <?php
-/**
- * @package moodlecore
- * @subpackage backup-moodle2
- * @copyright 2010 onwards Eloy Lafuente (stronk7) {@link http://stronk7.com}
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -37,9 +31,7 @@ class restore_tadc_activity_task extends restore_activity_task {
      */
     static public function define_decode_contents() {
         $contents = array();
-
-        $contents[] = new restore_decode_content('tadc', array(), 'tadc');
-
+        $contents[] =  new restore_decode_content('tadc', array('name'), 'tadc');
         return $contents;
     }
 
@@ -50,8 +42,8 @@ class restore_tadc_activity_task extends restore_activity_task {
     static public function define_decode_rules() {
         $rules = array();
 
-        $rules[] = new restore_decode_rule('TADCVIEWBYID', '/mod/tadc/view.php?id=$1', 'course_module');
-        $rules[] = new restore_decode_rule('TADCINDEX', '/mod/tadc/index.php?id=$1', 'course');
+//        $rules[] = new restore_decode_rule('TADCVIEWBYID', '/mod/tadc/view.php?id=$1', 'course_module');
+//        $rules[] = new restore_decode_rule('TADCINDEX', '/mod/tadc/index.php?id=$1', 'course');
 
         return $rules;
 
@@ -65,10 +57,10 @@ class restore_tadc_activity_task extends restore_activity_task {
      */
     static public function define_restore_log_rules() {
         $rules = array();
-
-        $rules[] = new restore_log_rule('tadc', 'add', 'view.php?id={course_module}', '{tadc}');
-        $rules[] = new restore_log_rule('tadc', 'update', 'view.php?id={course_module}', '{tadc}');
-        $rules[] = new restore_log_rule('tadc', 'view', 'view.php?id={course_module}', '{tadc}');
+//
+//        $rules[] = new restore_log_rule('tadc', 'add', 'view.php?id={course_module}', '{tadc}');
+//        $rules[] = new restore_log_rule('tadc', 'update', 'view.php?id={course_module}', '{tadc}');
+//        $rules[] = new restore_log_rule('tadc', 'view', 'view.php?id={course_module}', '{tadc}');
 
         return $rules;
     }
@@ -85,9 +77,11 @@ class restore_tadc_activity_task extends restore_activity_task {
      */
     static public function define_restore_log_rules_for_course() {
         $rules = array();
-
-        $rules[] = new restore_log_rule('tadc', 'view all', 'index.php?id={course}', null);
+//
+//        $rules[] = new restore_log_rule('tadc', 'view all', 'index.php?id={course}', null);
 
         return $rules;
+    }
+    public function after_restore() {
     }
 }
