@@ -18,19 +18,22 @@
 /**
  * Internal library of functions for module tadc
  *
- * All the tadc specific functions, needed to implement the module
- * logic, should go here. Never include this file from your lib.php!
  *
  * @package    mod
  * @subpackage tadc
- * @copyright  2011 Your Name
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @copyright  2013 Talis Education Ltd
+ * @license    MIT
  */
 
 defined('MOODLE_INTERNAL') || die();
 require_once(dirname(__FILE__)."/lib.php");
 
-
+/**
+ * Maps a TADC digisation request resource (record) into an OpenURL array
+ *
+ * @param $resource
+ * @return array
+ */
 function tadc_resource_to_referent($resource)
 {
     $params = array();
@@ -89,40 +92,55 @@ function tadc_resource_to_referent($resource)
     return $params;
 }
 
-function tadc_build_request($request, $tenant)
+/**
+ * @param stdClass $request
+ * @param string $tenant
+ * @return array
+ */
+function tadc_build_request($request)
 {
-    global $CFG, $DB, $COURSE, $USER;
+    global $CONTEXT, $DB, $COURSE, $USER;
     $ts = new DateTime();
     $params = array_merge(array('url_ver'=>'Z39.88-2004', 'url_ctx_fmt'=>'info:ofi/fmt:kev:mtx:ctx', 'url_tim'=>$ts->format(DateTime::ISO8601)), tadc_resource_to_referent($request));
     $course = $DB->get_record('course', array('id' => $COURSE->id), '*', MUST_EXIST);
 
     $params['rfr_id'] = new moodle_url('/mod/tadc/view.php', array('t'=>$request->id));
     $params['rfr.type'] = 'http://schemas.talis.com/tadc/v1/referrers/moodle/1';
-    $enrolled = $DB->get_records_sql("
 
-SELECT c.id, u.id
+    $context = context_course::instance($COURSE->id);
+    $enrolled_users = get_enrolled_users($context);
 
-FROM {course} c
-JOIN {context} ct ON c.id = ct.instanceid
-JOIN {role_assignments} ra ON ra.contextid = ct.id
-JOIN {user} u ON u.id = ra.userid
-JOIN {role} r ON r.id = ra.roleid
+    // flail about to get some semblance of course end date
+    $courseLength = 0;
+    foreach($enrolled_users as $user)
+    {
+        if($endTimeStamp = enrol_get_enrolment_end($COURSE->id, $user->id))
+        {
+            if($endTimeStamp > $courseLength)
+            {
+                $courseLength = $endTimeStamp;
+            }
+        }
+    }
 
-where c.id = " . $COURSE->id);
-
-    $enrolment = $DB->get_record('enrol', array('courseid'=>$COURSE->id, 'enrol'=>'manual'),'*', MUST_EXIST);
-
-    $count = count($enrolled) > 0 ? count($enrolled) : null;
+    if($courseLength == 0)
+    {
+        $enrolment = $DB->get_record('enrol', array('courseid'=>$COURSE->id, 'enrol'=>'manual'),'*');
+        if($enrolment)
+        {
+            $courseLength = $enrolment->enrolperiod;
+        }
+    }
 
     $startDate = date_format_string($course->startdate, '%Y-%m-%d');
-    $endDate = date_format_string($course->startdate + $enrolment->enrolperiod, '%Y-%m-%d');
+    $endDate = date_format_string($course->startdate + $courseLength, '%Y-%m-%d');
     $params = array_merge($params, array(
         'rfe.code'=>$COURSE->shortname,
         'rfe.name'=>$COURSE->fullname,
         'rfe.sdate'=>$startDate,
         'rfe.edate'=>$endDate,
         'req.email'=>$USER->email,
-        'rfe.size'=>$count,
+        'rfe.size'=>count($enrolled_users),
         'req.name'=>$USER->firstname . ' ' . $USER->lastname
     ));
     if($params['rfe.size'] == 0) // or false, or null
@@ -132,6 +150,13 @@ where c.id = " . $COURSE->id);
 
     return $params;
 }
+
+/**
+ * Generates a TADC request from a request resource, sends the request and returns the response from the TADC service
+ *
+ * @param stdClass $request
+ * @return array
+ */
 function tadc_submit_request_form($request)
 {
     $tadc = get_config('tadc');
@@ -152,6 +177,12 @@ function tadc_submit_request_form($request)
     return json_decode($response, true);
 }
 
+/**
+ * Builds the 'name' property for a digitisation request
+ *
+ * @param stdClass $tadc
+ * @return string
+ */
 function tadc_build_title_string($tadc)
 {
     $title = '';
@@ -180,6 +211,12 @@ function tadc_build_title_string($tadc)
     return chop(trim($title),",");
 }
 
+/**
+ * Generate an HTML citation for the digitisation request
+ *
+ * @param stdClass $tadc
+ * @return string
+ */
 function tadc_generate_html_citation($tadc)
 {
     $requestMarkup = '';
@@ -243,6 +280,12 @@ function tadc_generate_html_citation($tadc)
     return chop(trim($requestMarkup),",") . '.';
 }
 
+/**
+ * Take a TADC submission response and applies the returned metadata to the digitisation request resource
+ *
+ * @param stdClass $tadc
+ * @param array $md
+ */
 function tadc_set_resource_values_from_tadc_metadata(stdClass &$tadc, array $md)
 {
     if(@$md['editionTitle'] && !@$tadc->container_title)
@@ -310,6 +353,12 @@ function tadc_set_resource_values_from_tadc_metadata(stdClass &$tadc, array $md)
     }
 }
 
+/**
+ * Take a TADC submission response edition block and applies the returned metadata to the digitisation request resource
+ *
+ * @param stdClass $tadc
+ * @param array $md
+ */
 function tadc_set_resource_values_from_tadc_edition(stdClass &$tadc, array $md)
 {
     if(@$md['title'] && !@$tadc->container_title)
@@ -334,6 +383,11 @@ function tadc_set_resource_values_from_tadc_edition(stdClass &$tadc, array $md)
     }
 }
 
+/**
+ * Generates an empty TADC object
+ *
+ * @return stdClass
+ */
 function tadc_create_new_tadc()
 {
     $tadc = new stdClass();
@@ -363,6 +417,11 @@ function tadc_create_new_tadc()
     return $tadc;
 }
 
+/**
+ * Converts the identifiers in the form (doi, ISBN, etc.) to how they are stored in the database
+ *
+ * @param stdClass $tadc
+ */
 function tadc_form_identifiers_to_resource_identifiers(stdClass &$tadc)
 {
     if(@$tadc->doi)
@@ -382,12 +441,18 @@ function tadc_form_identifiers_to_resource_identifiers(stdClass &$tadc)
     }
 }
 
+/**
+ * Updates a TADC request resource with the values returned from the TADC submission request
+ *
+ * @param stdClass $tadc
+ * @param array $response
+ */
 function tadc_update_resource_with_tadc_response(stdClass &$tadc, array $response)
 {
 
     $other_response_data = array();
     $id = explode("/", $response['id']);
-    $tadc->request_id = $id[count($id) - 1];
+    $tadc->tadc_id = $id[count($id) - 1];
     $tadc->request_status = $response['status'];
     if(isset($response['message']))
     {
@@ -416,12 +481,22 @@ function tadc_update_resource_with_tadc_response(stdClass &$tadc, array $respons
     }
 }
 
+/**
+ * A client class to interact with the TADC service
+ *
+ * Class mod_tadc_tadcclient
+ */
 class mod_tadc_tadcclient {
     private $_conn;
     private $_base_url;
     private $_key;
     private $_secret;
 
+    /**
+     * @param string $tadc_location
+     * @param string $api_key
+     * @param string $shared_secret
+     */
     public function __construct($tadc_location, $api_key, $shared_secret)
     {
         $this->_base_url = $tadc_location;
@@ -430,6 +505,12 @@ class mod_tadc_tadcclient {
         $this->_conn = new \Curl(array('cache'=>false, 'debug'=>false));
     }
 
+    /**
+     * Generates the api signature and POSTs a request to the TADC service
+     *
+     * @param $params
+     * @return bool
+     */
     public function submit_request($params)
     {
         $params['res.signature'] = $this->generate_hash($params);
@@ -437,6 +518,12 @@ class mod_tadc_tadcclient {
         return $this->_conn->post($this->_base_url . '/request/', $this->generate_query_string($params), array('httpheader'=>array('Accept: application/json')));
     }
 
+    /**
+     * Generates the API signature from the query vars.  This SHOULD NOT contain 'api_key' or 'signature'
+     *
+     * @param array $params
+     * @return string
+     */
     private function generate_hash(array $params)
     {
         $values = array($this->_key);
@@ -449,6 +536,13 @@ class mod_tadc_tadcclient {
         return hash_hmac('sha256', implode('|',$values), $this->_secret);
     }
 
+    /**
+     * OpenURL requests don't conform to PHP's built in query var generator, so we have to build the query string
+     * manually
+     *
+     * @param array $params
+     * @return string
+     */
     private function generate_query_string(array $params)
     {
         $query = array();

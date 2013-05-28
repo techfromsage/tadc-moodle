@@ -18,16 +18,10 @@
 /**
  * Library of interface functions and constants for module tadc
  *
- * All the core Moodle functions, neeeded to allow the module to work
- * integrated in Moodle should be placed here.
- * All the tadc specific functions, needed to implement all the module
- * logic, should go to locallib.php. This will help to save some memory when
- * Moodle is performing actions across all modules.
- *
  * @package    mod
  * @subpackage tadc
- * @copyright  2011 Your Name
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @copyright  2013 Talis Education Ltd.
+ * @license    MIT
  */
 
 defined('MOODLE_INTERNAL') || die();
@@ -44,9 +38,17 @@ defined('MOODLE_INTERNAL') || die();
  * @return mixed true if the feature is supported, null if unknown
  */
 function tadc_supports($feature) {
+    $tadc_cfg = get_config('tadc');
     switch($feature) {
         case FEATURE_MOD_INTRO:         return false;
-        case FEATURE_MOD_ARCHETYPE:     return MOD_ARCHETYPE_RESOURCE;
+        case FEATURE_MOD_ARCHETYPE:
+            if($tadc_cfg->allow_requests)
+            {
+                return MOD_ARCHETYPE_RESOURCE;
+            } else {
+                // If requests aren't allowed in the admin settings, don't show up as an activity or resource
+                return MOD_ARCHETYPE_SYSTEM;
+            }
         case FEATURE_BACKUP_MOODLE2:    return true;
         default:                        return null;
     }
@@ -218,7 +220,6 @@ function tadc_print_recent_mod_activity($activity, $courseid, $detail, $modnames
  * as sending out mail, toggling flags etc ...
  *
  * @return boolean
- * @todo Finish documenting this function
  **/
 function tadc_cron () {
     return true;
@@ -234,9 +235,14 @@ function tadc_get_extra_capabilities() {
     return array();
 }
 
+/**
+ * Only display resources that are LIVE to non-manager roles
+ *
+ * @param cm_info $cm
+ */
 function tadc_cm_info_dynamic(cm_info $cm) {
     global $DB;
-    $context = get_context_instance(CONTEXT_MODULE, $cm->id);
+    $context = context_module::instance($cm->id);
     if($cm->modname === 'tadc')
     {
         $tadc = $DB->get_record('tadc', array('id'=>$cm->instance));

@@ -49,8 +49,7 @@ if ($id) {
 }
 
 require_login($course, true, $cm);
-//$context = context_course::instance($cm->id);
-$context = get_context_instance(CONTEXT_MODULE, $cm->id);
+$context = context_module::instance($cm->id);
 
 if($tadc->request_status === 'REJECTED' && $tadc->reason_code === 'InvalidRequest')
 {
@@ -70,13 +69,14 @@ $PAGE->set_context($context);
 
 echo $OUTPUT->header();
 
-// Replace the following lines with you own code
+// Output the citation as HTML
 $requestMarkup = '<div class="tadc-request-metadata">';
 
 $requestMarkup .= tadc_generate_html_citation($tadc);
 
 $requestMarkup .= '</div>';
 
+// If the request is LIVE, show the player, if the user has permissions
 if($tadc->request_status === 'LIVE')
 {
     $tadc_cfg = get_config('tadc');
@@ -86,7 +86,7 @@ if($tadc->request_status === 'LIVE')
         $requestMarkup .= '<div class="tadc-bundle-viewer-container yui3-g">';
         $key = hash_hmac('sha256', '/' . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url.http_build_query(array('userId'=>$USER->username)).date('Ymd'), $tadc_cfg->tadc_shared_secret);
         $requestMarkup .= '<div class="yui3-u-1-2"><a href="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '">Click here if content does not load below.</a></div>';
-        if(has_capability('mod/tadc:download', $context))
+        if(has_capability('mod/tadc:download', $context) && $tadc_cfg->allow_downloads)
         {
             $requestMarkup .= '<div class="yui3-u-1-2 tadc-download-link"><a class="button" href="' . new moodle_url('/mod/tadc/download.php', array('id'=>$cm->id)) . '">Print/Download</a></div>';
         }
@@ -98,6 +98,8 @@ if($tadc->request_status === 'LIVE')
     }
 
 } elseif($tadc->request_status) {
+    // Otherwise show the current state of the request
+
     $requestMarkup .= '<div class="tadc-request-status yui3-g"><div class="yui3-u-1"><dl><dt>Status</dt><dd>' . $tadc->request_status . '</dd>';
     if($tadc->status_message)
     {
@@ -106,11 +108,13 @@ if($tadc->request_status === 'LIVE')
     $requestMarkup .= '</dl></div></div>';
     $requestMarkup .= '<div class="tadc-reason-code-message"><p>' . get_string($tadc->reason_code . 'Message', 'tadc'). '</p></div>';
 
-    if($tadc->request_status === 'REJECTED')
+    // If it's rejected, give the manager options to either submit alternatives or a referral request
+    if($tadc->request_status === 'REJECTED' && has_capability('mod/tadc:updateinstance', $context))
     {
         $requestMarkup .= '<div class="tadc-rejection-options">';
         switch($tadc->reason_code)
         {
+            // For requests with existing electronic copies, give the option to turn it into a URL
             case 'ElectronicCopyAvailable':
                 $tadc_data = json_decode($tadc->other_response_data, true);
 
@@ -196,6 +200,13 @@ echo $OUTPUT->box($requestMarkup);
 // Finish the page
 echo $OUTPUT->footer();
 
+/**
+ * Generate the hidden form vars to resubmit a request with different values
+ *
+ * @param stdClass $cm
+ * @param array $edition
+ * @return string
+ */
 function tadc_generate_resubmit_form_from_tadc_edition(stdClass $cm, array $edition)
 {
     $altEditionTadc = tadc_create_new_tadc();

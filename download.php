@@ -1,4 +1,9 @@
 <?php
+
+/***
+ * Allows an institution to use Moodle to determine enrollments in a particular course to restrict the downloading
+ * of bundle PDFs
+ */
 require_once('../../config.php');
 require_once('lib.php');
 
@@ -7,12 +12,16 @@ $id = optional_param('id', null, PARAM_INT);    // Course Module ID
 $t = optional_param('t', null, PARAM_INT);
 $courseCode = optional_param('code', null, PARAM_TEXT);
 $bundleId = optional_param('bundleId', null, PARAM_TEXT);
-
+$tadc_cfg = get_config('tadc');
+if(!$tadc_cfg->allow_downloads)
+{
+    print_error('notavailable');
+}
 if(!($id || $t || ($courseCode && $bundleId)))
 {
     print_error('cannotcallscript');
 }
-$tadc_cfg = get_config('tadc');
+
 if ($id) {
     $cm         = get_coursemodule_from_id('tadc', $id, 0, false, MUST_EXIST);
     $course     = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
@@ -30,14 +39,17 @@ if ($id) {
 }
 
 require_login($course, true, $cm);
-global $USER;
-//$context = get_context_instance(CONTEXT_MODULE, $cm->id);
+
 $context = context_module::instance($cm->id);
 require_capability('mod/tadc:download', $context);
 
+// Initialize an HTTP client and request the PDF from TADC using digest authentication
 $curl = new curl();
 
+// Standardize a timezone between client/server
 date_default_timezone_set('UTC');
+
+// Initialize the authorization
 $curl->setopt(array('HTTPAUTH'=>CURLAUTH_DIGEST, 'USERPWD'=>$tadc_cfg->api_key . ":" . hash_hmac('sha256', $course->shortname.$tadc->bundle_url.date('Y-m-d'), $tadc_cfg->tadc_shared_secret)));
 $response = $curl->get($tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '/download');
 $info = $curl->get_info();

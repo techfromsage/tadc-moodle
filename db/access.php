@@ -2,7 +2,7 @@
 $capabilities = array(
 
     'mod/tadc:addinstance' => array(
-        'riskbitmask' => RISK_SPAM,
+        'riskbitmask' => RISK_SPAM | RISK_PERSONAL | RISK_XSS,
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
@@ -11,7 +11,7 @@ $capabilities = array(
         )
     ),
     'mod/tadc:updateinstance' => array(
-        'riskbitmask' => RISK_SPAM,
+        'riskbitmask' => RISK_SPAM | RISK_PERSONAL | RISK_XSS,
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
@@ -21,7 +21,6 @@ $capabilities = array(
     ),
     'mod/tadc:view'=> array(
         'captype' => 'read',
-        'riskbitmask' => 0,
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
             'student' => CAP_ALLOW,
@@ -34,7 +33,7 @@ $capabilities = array(
     ),
     'mod/tadc:download'=> array(
         'captype' => 'read',
-        'riskbitmask' => 0,
+        'riskbitmask' => RISK_PERSONAL,
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => array(
             'student' => CAP_ALLOW,

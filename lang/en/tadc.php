@@ -43,18 +43,26 @@ $string['journalrequestlink'] = 'Request a journal article';
 $string['bookrequestlink'] = 'Request a chapter or section from a book';
 $string['requestformsubmittext'] = 'Submit request';
 $string['requestformresubmittext'] = 'Re-submit request with these values';
+$string['alternate_editions_mesg'] = 'The library holds the following editions, which may be available for digitisation:';
+$string['edition'] = 'Edition';
+$string['invalidtadcid'] = 'ID does not appear to be a valid digitisation request';
+/**
+ * Admin settings
+ */
 $string['base_url'] = 'TADC location';
 $string['base_url_desc'] = 'URL of the Talis Aspire Digitised Content service (e.g. http://content.talisaspire.com/)';
 $string['shared_secret'] = 'Secret';
 $string['shared_secret_desc'] = 'Shared secret salt for verifying requests.  This also needs to be set in TADC';
 $string['trackback_endpoint'] = 'Trackback location';
 $string['trackback_endpoint_desc'] = 'URL of trackback endpoint so TADC can send status updates.';
-$string['alternate_editions_mesg'] = 'The library holds the following editions, which may be available for digitisation:';
-$string['edition'] = 'Edition';
 $string['api_key'] = 'A valid TADC API key';
 $string['api_key_desc'] = 'Generate this key in the TADC Settings/Manage access keys menu';
 $string['course_code_field'] = 'Course code field';
 $string['course_code_field_desc'] = 'The Moodle Course Field that corresponds to the TADC course code';
+$string['config_allow_requests'] = 'Allow TADC requests from Moodle';
+$string['config_allow_requests_desc'] = 'Requests can be sent to TADC from Moodle and a digitisation resource will be created within the course';
+$string['config_allow_downloads'] = 'Allow TADC downloads from Moodle';
+$string['config_allow_downloads_desc'] = 'Moodle can be used to specify enrollment in a course, and the bundle player will point the user to Moodle to download the document';
 
 /*
 * Messages for API reason codes:

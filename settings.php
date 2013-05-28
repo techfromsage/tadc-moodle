@@ -4,13 +4,7 @@ defined('MOODLE_INTERNAL') || die;
 
 if ($ADMIN->fulltree) {
     require_once(dirname(__FILE__).'/lib.php');
-//
-//    // General settings
-//
-//    $settings->add(new admin_setting_configcheckbox('tadc/requiremodintro',
-//        get_string('requiremodintro', 'admin'), get_string('configrequiremodintro', 'admin'), 1));
-//
-//
+
     $settings->add(new admin_setting_configtext('tadc/tenant_code',
         get_string('tenantshortcode', 'mod_tadc'), get_string('tenantshortcode_desc', 'mod_tadc'),
         '', PARAM_TEXT));
@@ -27,17 +21,17 @@ if ($ADMIN->fulltree) {
         get_string('shared_secret', 'mod_tadc'), get_string('shared_secret_desc', 'mod_tadc'),
         '', PARAM_TEXT));
 
-    $settings->add(new admin_setting_configselect('tadc/course_code_field', get_string('course_code_field', 'mod_tadc'), get_string('course_code_field_desc', 'mod_tadc'), 'idnumber', array('idnumber','shortname')));
+    $settings->add(new admin_setting_configselect('tadc/course_code_field',
+        get_string('course_code_field', 'mod_tadc'), get_string('course_code_field_desc', 'mod_tadc'),
+        'idnumber', array('idnumber','shortname')));
 
     $settings->add(new admin_setting_configtext('tadc/trackback_endpoint',
         get_string('trackback_endpoint', 'mod_tadc'), get_string('trackback_endpoint_desc', 'mod_tadc'),
         '', PARAM_TEXT));
-//
-//    // Modedit defaults.
-//
-//    $settings->add(new admin_setting_heading('tadcmodeditdefaults', get_string('modeditdefaults', 'admin'), get_string('condifmodeditdefaults', 'admin')));
 
-//    $settings->add(new admin_setting_configselect('book/numbering',
-//        get_string('numbering', 'mod_book'), '', BOOK_NUM_NUMBERS, $options));
+    $settings->add(new admin_setting_configcheckbox('tadc/allow_requests',
+        get_string('config_allow_requests', 'mod_tadc'), get_string('config_allow_requests_desc', 'mod_tadc'), 0));
 
+    $settings->add(new admin_setting_configcheckbox('tadc/allow_downloads',
+        get_string('config_allow_downloads', 'mod_tadc'), get_string('config_allow_downloads_desc', 'mod_tadc'), 0));
 }
