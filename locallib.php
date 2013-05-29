@@ -28,6 +28,7 @@
 defined('MOODLE_INTERNAL') || die();
 require_once(dirname(__FILE__)."/lib.php");
 
+$_tadc_client = null;
 /**
  * Maps a TADC digisation request resource (record) into an OpenURL array
  *
@@ -85,6 +86,22 @@ function tadc_resource_to_referent($resource)
     {
         $params['rft.epage'] = $resource->end_page;
     }
+    if(@$resource->publication_date)
+    {
+        $params['rft.date'] = $resource->publication_date;
+    }
+    if(@$resource->publisher)
+    {
+        $params['rft.pub'] = $resource->publisher;
+    }
+    if(@$resource->volume)
+    {
+        $params['rft.volume'] = $resource->volume;
+    }
+    if(@$resource->issue)
+    {
+        $params['rft.issue'] = $resource->issue;
+    }
     if(@$resource->needed_by)
     {
         $params['svc.neededby'] = date_format_string($resource->needed_by, '%Y-%m-%d');
@@ -100,16 +117,15 @@ function tadc_resource_to_referent($resource)
 function tadc_build_request($request)
 {
     global $CONTEXT, $DB, $COURSE, $USER;
+    $course_code_field = get_config('tadc', 'course_code_field');
     $ts = new DateTime();
     $params = array_merge(array('url_ver'=>'Z39.88-2004', 'url_ctx_fmt'=>'info:ofi/fmt:kev:mtx:ctx', 'url_tim'=>$ts->format(DateTime::ISO8601)), tadc_resource_to_referent($request));
-    $course = $DB->get_record('course', array('id' => $COURSE->id), '*', MUST_EXIST);
-
-    $params['rfr_id'] = new moodle_url('/mod/tadc/view.php', array('t'=>$request->id));
+    $rfr_id = new moodle_url('/mod/tadc/view.php', array('t'=>$request->id));
+    $params['rfr_id'] = $rfr_id->out();
     $params['rfr.type'] = 'http://schemas.talis.com/tadc/v1/referrers/moodle/1';
 
     $context = context_course::instance($COURSE->id);
     $enrolled_users = get_enrolled_users($context);
-
     // flail about to get some semblance of course end date
     $courseLength = 0;
     foreach($enrolled_users as $user)
@@ -132,10 +148,10 @@ function tadc_build_request($request)
         }
     }
 
-    $startDate = date_format_string($course->startdate, '%Y-%m-%d');
-    $endDate = date_format_string($course->startdate + $courseLength, '%Y-%m-%d');
+    $startDate = date_format_string($COURSE->startdate, '%Y-%m-%d');
+    $endDate = date_format_string($COURSE->startdate + $courseLength, '%Y-%m-%d');
     $params = array_merge($params, array(
-        'rfe.code'=>$COURSE->shortname,
+        'rfe.code'=>$COURSE->$course_code_field,
         'rfe.name'=>$COURSE->fullname,
         'rfe.sdate'=>$startDate,
         'rfe.edate'=>$endDate,
@@ -206,7 +222,7 @@ function tadc_build_title_string($tadc)
         $title .= 'pp. ' . $tadc->start_page . '-' . $tadc->end_page;
     } elseif(@$tadc->start_page)
     {
-        $title .= 'p.' . $tadc->start_page;
+        $title .= 'p. ' . $tadc->start_page;
     }
     return chop(trim($title),",");
 }
@@ -237,7 +253,7 @@ function tadc_generate_html_citation($tadc)
     }
     if(@$tadc->type === 'book' && @$tadc->section_title && (@$tadc->container_title || @$tadc->container_identifier))
     {
-        $requestMarkup .= ' in ';
+        $requestMarkup .= 'in ';
     }
     if(@$tadc->container_title)
     {
@@ -274,7 +290,7 @@ function tadc_generate_html_citation($tadc)
         $requestMarkup .= 'pp. ' . $tadc->start_page . '-' . $tadc->end_page;
     } elseif(@$tadc->start_page)
     {
-        $requestMarkup .= 'p.' . $tadc->start_page;
+        $requestMarkup .= 'p. ' . $tadc->start_page;
     }
 
     return chop(trim($requestMarkup),",") . '.';
@@ -288,6 +304,14 @@ function tadc_generate_html_citation($tadc)
  */
 function tadc_set_resource_values_from_tadc_metadata(stdClass &$tadc, array $md)
 {
+    if(@$md['type'] === 'Article' && !@$tadc->type)
+    {
+        $tadc->type = 'journal';
+    }
+    if(@$md['type'] !== 'Article' && !@$tadc->type)
+    {
+        $tadc->type = 'book';
+    }
     if(@$md['editionTitle'] && !@$tadc->container_title)
     {
         $tadc->container_title = $md['editionTitle'];
