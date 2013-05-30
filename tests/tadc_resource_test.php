@@ -211,5 +211,80 @@ class mod_tadc_resource_test extends advanced_testcase {
         $this->assertEquals('Nature', $tadc->container_title);
         $this->assertEquals('issn:0028-0836', $tadc->container_identifier);
         $this->assertEquals('doi:10.1038/256495a0', $tadc->document_identifier);
+        $this->assertEquals('495', $tadc->start_page);
+        $this->assertEquals('515', $tadc->end_page);
+        $this->assertEquals('journal', $tadc->type);
+        $this->assertEquals('256', $tadc->volume);
+        $this->assertEquals('5517', $tadc->issue);
+        $this->assertEquals('1975-08', $tadc->publication_date);
+        $this->assertEquals('Macmillan Journals.', $tadc->publisher);
+        $tadc = tadc_create_new_tadc();
+        $response = '{"type":"BookSection","sectionTitle":null,"sectionCreators":["ed. by J.E. Flower."],"startPage":"17","endPage":"25","editionTitle":"France today","editionCreators":["Flower, J. E."],"editionStatement":"8th ed.","editionDate":"1997","isbn13":["9780340630938"],"isbn10":["0340630930"],"identifiers":{"isbn10":["0340630930"],"isbn13":["9780340630938"]},"publisherStrings":["Hodder & Stoughton"],"publicationCountry":"enk","language":"eng","numberOfPages":248}';
+        tadc_set_resource_values_from_tadc_metadata($tadc, json_decode($response, true));
+        $this->assertEquals('book', $tadc->type);
+        $this->assertEquals('ed. by J.E. Flower.', $tadc->section_creator);
+        $this->assertNull($tadc->section_title);
+        $this->assertEquals('17', $tadc->start_page);
+        $this->assertEquals('25', $tadc->end_page);
+        $this->assertEquals('France today', $tadc->container_title);
+        $this->assertEquals('Flower, J. E.', $tadc->container_creator);
+        $this->assertEquals('8th ed.', $tadc->edition);
+        $this->assertEquals('1997', $tadc->publication_date);
+        $this->assertEquals('isbn:9780340630938', $tadc->container_identifier);
+        $this->assertNull($tadc->document_identifier);
+        $this->assertEquals('Hodder & Stoughton', $tadc->publisher);
     }
+
+    public function test_set_resource_values_from_editions_response()
+    {
+        $tadc = tadc_create_new_tadc();
+        $response = '{"type":null,"identifiers":{"isbn13":["9780203340189"],"isbn10":["0203340183"]},"title":"France, 1814-1940","creators":["J.P.T. Bury ; with a new introduction by Robert Tombs."],"editionStatement":"6th ed.","normalizedEditionStatement":6,"language":"eng","date":"2003","country":null,"formats":["BA"],"publisherStrings":["Routledge"],"numberOfPages":null,"dataSource":"oclc","id":"isbn:9780203340189"}';
+        tadc_set_resource_values_from_tadc_edition($tadc, json_decode($response, true));
+        $this->assertEquals('book', $tadc->type);
+        $this->assertEquals('isbn:9780203340189', $tadc->container_identifier);
+        $this->assertEquals('France, 1814-1940', $tadc->container_title);
+        $this->assertEquals('J.P.T. Bury ; with a new introduction by Robert Tombs.', $tadc->container_creator);
+        $this->assertEquals('6th ed.', $tadc->edition);
+        $this->assertEquals('2003', $tadc->publication_date);
+        $this->assertEquals('Routledge', $tadc->publisher);
+    }
+
+    public function test_form_identifiers_to_resource_identifiers()
+    {
+        $tadc = tadc_create_new_tadc();
+        $tadc->isbn = '1234567890';
+        tadc_form_identifiers_to_resource_identifiers($tadc);
+        $this->assertEquals('isbn:1234567890', $tadc->container_identifier);
+        $tadc = tadc_create_new_tadc();
+        $tadc->issn = '1234-5678';
+        tadc_form_identifiers_to_resource_identifiers($tadc);
+        $this->assertEquals('issn:1234-5678', $tadc->container_identifier);
+        $tadc = tadc_create_new_tadc();
+        $tadc->pmid = '1234567890';
+        tadc_form_identifiers_to_resource_identifiers($tadc);
+        $this->assertEquals('pmid:1234567890', $tadc->document_identifier);
+        $tadc->doi = '10.0.1/1234567890';
+        tadc_form_identifiers_to_resource_identifiers($tadc);
+        $this->assertEquals('doi:10.0.1/1234567890', $tadc->document_identifier);
+    }
+
+    public function test_update_resource_with_tadc_response_data()
+    {
+        $tadc = tadc_create_new_tadc();
+        $response = '{"status":"REJECTED","id":"http:\/\/drp.dev:8080\/life\/request\/4","reason_code":"ElectronicCopyAvailable","url":["http:\/\/lib.myilibrary.com?id=264907&entityid=https:\/\/shibsles.brunel.ac.uk\/idp\/shibboleth"],"request":"url_ver=Z39.88-2004&url_ctx_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Actx&ctx_ver=Z39.88-2004&ctx_enc=info%3Aofi%2Fenc%3AUTF-8&rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Abook&rft.genre=bookitem&rft.au=Luke+Welling%2C+Laura+Thomson.&rft.btitle=PHP+and+MySQL+Web+development&rft.date=2009&rft.isbn=9786612649073&rft.atitle=Chapter+11&rft.pub=Addison-Wesley&rfe.code=TEST-101-1369757179&rfe.name=Tests+in+a+Testing+Environment&rfe.size=23&rfe.sdate=2013-04-28&rfe.edate=2013-06-28&req.name=Joe+Bloggs&req.email=jbloggs%40example.org","metadata":{"type":"BookSection","sectionTitle":"Chapter 11","sectionCreators":["Luke Welling, Laura Thomson."],"startPage":null,"endPage":null,"editionTitle":"PHP and MySQL Web development","editionCreators":["Welling, Luke","Thomson, Laura.","MyiLibrary."],"editionStatement":"4th ed.","editionDate":"2008","isbn13":["9786612649073","9780672329166"],"isbn10":["6612649070","0672329166"],"identifiers":{"isbn13":["9786612649073","9780672329166"],"isbn10":["6612649070","0672329166"]},"publisherStrings":["Addison-Wesley"],"publicationCountry":"nju","language":"eng","numberOfPages":968}}';
+        tadc_update_resource_with_tadc_response($tadc, json_decode($response, true));
+        $this->assertEquals('REJECTED', $tadc->request_status);
+        $this->assertEquals('4', $tadc->tadc_id);
+        $this->assertEquals('ElectronicCopyAvailable', $tadc->reason_code);
+        $this->assertEquals('{"url":["http:\/\/lib.myilibrary.com?id=264907&entityid=https:\/\/shibsles.brunel.ac.uk\/idp\/shibboleth"]}', $tadc->other_response_data);
+        $this->assertEquals('book', $tadc->type);
+        $this->assertEquals('Chapter 11', $tadc->section_title);
+        $this->assertEquals('Luke Welling, Laura Thomson.', $tadc->section_creator);
+        $this->assertEquals('PHP and MySQL Web development', $tadc->container_title);
+        $this->assertEquals('Welling, Luke; Thomson, Laura.; MyiLibrary.', $tadc->container_creator);
+        $this->assertEquals('4th ed.', $tadc->edition);
+        $this->assertEquals('2008', $tadc->publication_date);
+        $this->assertEquals('isbn:9786612649073', $tadc->container_identifier);
+    }
+
 }

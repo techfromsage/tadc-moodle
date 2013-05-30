@@ -86,7 +86,7 @@ $string['UserInitiatedReferralMessage'] = 'Your referral request will be reviewe
 $string['ConciergeInitiatedReferralMessage'] = 'The system could not automatically determine whether or not the request could be cleared - a librarian will manually process the request.';
 $string['UnableToParseLatestEditionMessage'] = 'The system cannot determine whether or not there is a newer edition available - a librarian will manually process the request.';
 $string['UnableToIdentifyResourceMessage'] = 'The system cannot identify the requested resource based on the data supplied - a librarian will manually process the request.';
-$string['AwaitingFeePayClearanceMessage'] = 'This resource is not available in the library, however the request will be reviewed to determine if a suitable copy can be obtained elsewhere.';
+$string['AwaitingFeePayClearanceApprovalMessage'] = 'This resource is not available in the library, however the request will be reviewed to determine if a suitable copy can be obtained elsewhere.';
 $string['AwaitingManuallyInitiatedRightsClearanceMessage'] = 'This request cannot be serviced under the terms of your institution\'s CLA site licence, however it will be reviewed to determine if copyright clearance can be acquired elsewhere.';
 $string['UnableToDetermineSerialsHoldingsCoverageMessage'] = 'The system cannot determine if the library\'s serials holdings covers this request.';
 

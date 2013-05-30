@@ -23,7 +23,7 @@ if ($ADMIN->fulltree) {
 
     $settings->add(new admin_setting_configselect('tadc/course_code_field',
         get_string('course_code_field', 'mod_tadc'), get_string('course_code_field_desc', 'mod_tadc'),
-        'idnumber', array('idnumber','shortname')));
+        'idnumber', array('idnumber'=>'idnumber','shortname'=>'shortname','fullname'=>'fullname')));
 
     $settings->add(new admin_setting_configtext('tadc/trackback_endpoint',
         get_string('trackback_endpoint', 'mod_tadc'), get_string('trackback_endpoint_desc', 'mod_tadc'),

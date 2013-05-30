@@ -385,6 +385,8 @@ function tadc_set_resource_values_from_tadc_metadata(stdClass &$tadc, array $md)
  */
 function tadc_set_resource_values_from_tadc_edition(stdClass &$tadc, array $md)
 {
+    // If we're working with an 'edition', it has to be a book it's referring to
+    if(!@$tadc->type) { $tadc->type = 'book'; }
     if(@$md['title'] && !@$tadc->container_title)
     {
         $tadc->container_title = $md['title'];
@@ -400,6 +402,10 @@ function tadc_set_resource_values_from_tadc_edition(stdClass &$tadc, array $md)
     if(@$md['publisherStrings'] && !empty($md['publisherStrings']) && !@$tadc->publisher)
     {
         $tadc->publisher = $md['publisherStrings'][0];
+    }
+    if(@$md['editionStatement'] && !@$tadc->edition)
+    {
+        $tadc->edition = $md['editionStatement'];
     }
     if(@$md['date'] && !@$tadc->publication_date)
     {
