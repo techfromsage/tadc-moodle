@@ -69,4 +69,33 @@ function xmldb_tadc_upgrade($oldversion) {
     {
         upgrade_mod_savepoint(true, 2013052409, 'tadc');
     }
+    if ($oldversion < 20135060701)
+    {
+        $table = new xmldb_table('tadc');
+        $field = new xmldb_field('intro', XMLDB_TYPE_TEXT, null, null, null, null, null, 'other_response_data');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $field = new xmldb_field('introformat', XMLDB_TYPE_INTEGER, 2, null, null, null, null, 'intro');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        } else {
+            $dbman->change_field_type($table, $field);
+        }
+
+        $field = new xmldb_field('timecreated', XMLDB_TYPE_INTEGER, 10, null, XMLDB_NOTNULL, null, 0, 'introformat');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        } else {
+            $dbman->change_field_type($table, $field);
+        }
+
+        $field = new xmldb_field('timemodified', XMLDB_TYPE_INTEGER, 10, null, XMLDB_NOTNULL, null, 0, 'timecreated');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        } else {
+            $dbman->change_field_type($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2013060701, 'tadc');    }
 }

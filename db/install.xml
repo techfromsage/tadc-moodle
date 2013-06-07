@@ -29,7 +29,11 @@
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" PREVIOUS="bundle_url" NEXT="container_creator"/>
         <FIELD NAME="container_creator" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The author(s) or editor(s) of the book" PREVIOUS="name" NEXT="reason_code"/>
         <FIELD NAME="reason_code" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" PREVIOUS="container_creator" NEXT="other_response_data"/>
-        <FIELD NAME="other_response_data" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="A JSON object representing any extra properties returned in the TADC request, such as urls or alternate editions, etc." PREVIOUS="reason_code"/>
+        <FIELD NAME="other_response_data" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="A JSON object representing any extra properties returned in the TADC request, such as urls or alternate editions, etc." PREVIOUS="reason_code" NEXT="intro" />
+        <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="General introduction of the coursereading" PREVIOUS="other_response_data" NEXT="introformat"/>
+        <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="false" DEFAULT="0" SEQUENCE="false" COMMENT="Format of the intro field (MOODLE, HTML, MARKDOWN...)" PREVIOUS="intro" NEXT="timecreated"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" PREVIOUS="introformat" NEXT="timemodified"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" PREVIOUS="timecreated" />
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
