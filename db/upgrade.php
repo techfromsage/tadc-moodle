@@ -97,5 +97,10 @@ function xmldb_tadc_upgrade($oldversion) {
             $dbman->change_field_type($table, $field);
         }
 
-        upgrade_mod_savepoint(true, 2013060701, 'tadc');    }
+        upgrade_mod_savepoint(true, 2013060701, 'tadc');
+    }
+    if ($oldversion < 2013061001)
+    {
+        upgrade_mod_savepoint(true, 2013061001, 'tadc');
+    }
 }
