@@ -4,8 +4,9 @@
  * Allows an institution to use Moodle to determine enrollments in a particular course to restrict the downloading
  * of bundle PDFs
  */
-require_once('../../config.php');
-require_once('lib.php');
+require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
+require_once($CFG->libdir.'/filelib.php');
+require_once(dirname(__FILE__).'/lib.php');
 
 
 $id = optional_param('id', null, PARAM_INT);    // Course Module ID
@@ -32,26 +33,31 @@ if ($id) {
     $cm         = get_coursemodule_from_instance('tadc', $tadc->id, $course->id, false, MUST_EXIST);
 } elseif ($courseCode && $bundleId) {
     $course  = $DB->get_record('course', array($tadc_cfg->course_code_field => $courseCode), '*', MUST_EXIST);
-    $tadc     = $DB->get_record_select('tadc', $DB->sql_compare_text('bundle_url') . " = ? AND course = ?", array($bundleId, $course->id), '*', MUST_EXIST);
-    $cm         = get_coursemodule_from_instance('tadc', $tadc->id, $course->id, false, MUST_EXIST);
 } else {
-    error('You must specify a course_module ID or an instance ID');
+    error('You must specify a course_module ID or an instance ID or course code and bundleID');
 }
 
-require_login($course, true, $cm);
+if(isset($cm))
+{
+    require_login($course, true, $cm);
 
-$context = context_module::instance($cm->id);
-require_capability('mod/tadc:download', $context);
+    $context = context_module::instance($cm->id);
+    $bundleId = $tadc->bundle_url;
+} else {
+    $context = context_course::instance($course->id);
+}
+    require_capability('mod/tadc:download', $context);
+
 
 // Initialize an HTTP client and request the PDF from TADC using digest authentication
 $curl = new curl();
 
 // Standardize a timezone between client/server
 date_default_timezone_set('UTC');
-
+$courseCodeField = $tadc_cfg->course_code_field;
 // Initialize the authorization
-$curl->setopt(array('HTTPAUTH'=>CURLAUTH_DIGEST, 'USERPWD'=>$tadc_cfg->api_key . ":" . hash_hmac('sha256', $course->shortname.$tadc->bundle_url.date('Y-m-d'), $tadc_cfg->tadc_shared_secret)));
-$response = $curl->get($tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '/download');
+$curl->setopt(array('HTTPAUTH'=>CURLAUTH_DIGEST, 'USERPWD'=>$tadc_cfg->api_key . ":" . hash_hmac('sha256', $course->$courseCodeField.$bundleId.date('Y-m-d'), $tadc_cfg->tadc_shared_secret)));
+$response = $curl->get($tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $bundleId . '/download');
 $info = $curl->get_info();
 if(@$info['http_code'] === 200)
 {
