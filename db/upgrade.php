@@ -69,7 +69,7 @@ function xmldb_tadc_upgrade($oldversion) {
     {
         upgrade_mod_savepoint(true, 2013052409, 'tadc');
     }
-    if ($oldversion < 20135060701)
+    if ($oldversion < 2013060701)
     {
         $table = new xmldb_table('tadc');
         $field = new xmldb_field('intro', XMLDB_TYPE_TEXT, null, null, null, null, null, 'other_response_data');
@@ -102,5 +102,53 @@ function xmldb_tadc_upgrade($oldversion) {
     if ($oldversion < 2013061001)
     {
         upgrade_mod_savepoint(true, 2013061001, 'tadc');
+    }
+
+    if ($oldversion < 2013061701) {
+
+        // since renaming isn't supported across dbs we need to drop and add the index
+        // Drop old course_id_idx....
+        // Define index course_id_idx (not unique) to be dropped form tadc
+        $table = new xmldb_table('tadc');
+        $index = new xmldb_index('course_id_idx', XMLDB_INDEX_NOTUNIQUE, array('course_id'));
+
+        // Conditionally launch drop index course_id_idx
+        if ($dbman->index_exists($table, $index)) {
+            $dbman->drop_index($table, $index);
+        }
+
+
+        // rename the field in the table
+        // Rename field course_id on table tadc to course
+        $table = new xmldb_table('tadc');
+        $field = new xmldb_field('course_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, 'id');
+        if($dbman->field_exists($table, $field))
+        {
+            // Launch rename field course_id
+            $dbman->rename_field($table, $field, 'course');
+        } else {
+            $field = new xmldb_field('course', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null, 'id');
+            if(!$dbman->field_exists($table, $field))
+            {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+
+
+        // Add the index back but with new name
+
+        // Define index course_id_idx (not unique) to be added to tadc
+        $table = new xmldb_table('tadc');
+        $index = new xmldb_index('course_idx', XMLDB_INDEX_NOTUNIQUE, array('course'));
+
+        // Conditionally launch add index course_id_idx
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+
+        // tadc savepoint reached
+        upgrade_mod_savepoint(true, 2013061701, 'tadc');
     }
 }

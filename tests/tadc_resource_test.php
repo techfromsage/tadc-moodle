@@ -8,7 +8,7 @@ class mod_tadc_resource_test extends advanced_testcase {
     {
         $tadc = tadc_create_new_tadc();
         $this->assertObjectHasAttribute('id', $tadc);
-        $this->assertObjectHasAttribute('course_id', $tadc);
+        $this->assertObjectHasAttribute('course', $tadc);
         $this->assertObjectHasAttribute('section_title', $tadc);
         $this->assertObjectHasAttribute('section_creator', $tadc);
         $this->assertObjectHasAttribute('start_page', $tadc);
@@ -38,7 +38,7 @@ class mod_tadc_resource_test extends advanced_testcase {
         $course = $this->getDataGenerator()->create_course();
         $tadc = tadc_create_new_tadc();
         $tadc->id = 1234;
-        $tadc->course_id = $course->id;
+        $tadc->course = $course->id;
         $tadc->type = 'journal';
         $tadc->section_title = 'Article title';
         $tadc->section_creator = 'Bar, Foo';
@@ -96,7 +96,7 @@ class mod_tadc_resource_test extends advanced_testcase {
         $this->setUser($user1);
         $tadc = tadc_create_new_tadc();
         $tadc->id = 1234;
-        $tadc->course_id = $COURSE->id;
+        $tadc->course = $COURSE->id;
         $tadc->type = 'book';
         $tadc->section_title = 'Section title';
         $tadc->section_creator = 'Bar, Foo';

@@ -422,7 +422,7 @@ function tadc_create_new_tadc()
 {
     $tadc = new stdClass();
     $tadc->id = null;
-    $tadc->course_id = null;
+    $tadc->course = null;
     $tadc->type = null;
     $tadc->section_title = null;
     $tadc->section_creator = null;
