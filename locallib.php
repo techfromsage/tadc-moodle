@@ -151,7 +151,7 @@ function tadc_build_request($request)
     $startDate = date_format_string($COURSE->startdate, '%Y-%m-%d');
     $endDate = date_format_string($COURSE->startdate + $courseLength, '%Y-%m-%d');
     $params = array_merge($params, array(
-        'rfe.code'=>$COURSE->$course_code_field,
+        'rfe.code'=>tadc_format_course_id_for_tadc($COURSE->$course_code_field),
         'rfe.name'=>$COURSE->fullname,
         'rfe.sdate'=>$startDate,
         'rfe.edate'=>$endDate,
@@ -509,6 +509,29 @@ function tadc_update_resource_with_tadc_response(stdClass &$tadc, array $respons
     {
         tadc_set_resource_values_from_tadc_metadata($tadc, $response['metadata']);
     }
+}
+
+function tadc_format_course_id_for_tadc($courseId)
+{
+    $tadc_cfg = get_config('tadc');
+    if($tadc_cfg->course_code_format === '%COURSE_CODE%')
+    {
+        return $courseId;
+    }
+    foreach(explode('%COURSE_CODE%', $tadc_cfg->course_code_format) as $cruft)
+    {
+        $courseId = preg_replace("/" . $cruft . "/", "", $courseId);
+    }
+    return $courseId;
+}
+
+function tadc_courses_from_tadc_course_id($courseId)
+{
+    global $DB;
+    $tadc_cfg = get_config('tadc');
+    $courseId = str_replace('%COURSE_CODE%', $courseId, $tadc_cfg->course_code_format);
+    $rel = ($tadc_cfg->course_code_format === '%COURSE_CODE%' ? '=' : 'REGEXP');
+    return $DB->get_records_select('course', $tadc_cfg->course_code_field . " $rel ?", array($courseId));
 }
 
 /**

@@ -25,6 +25,10 @@ if ($ADMIN->fulltree) {
         get_string('course_code_field', 'mod_tadc'), get_string('course_code_field_desc', 'mod_tadc'),
         'idnumber', array('idnumber'=>'idnumber','shortname'=>'shortname','fullname'=>'fullname')));
 
+    $settings->add(new admin_setting_configtext('tadc/course_code_format',
+        get_string('course_code_format', 'mod_tadc'), get_string('course_code_format_desc', 'mod_tadc'),
+        '%COURSE_CODE%', PARAM_TEXT));
+
     $settings->add(new admin_setting_configtext('tadc/trackback_endpoint',
         get_string('trackback_endpoint', 'mod_tadc'), get_string('trackback_endpoint_desc', 'mod_tadc'),
         '', PARAM_TEXT));

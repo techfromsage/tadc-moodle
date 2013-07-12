@@ -287,4 +287,14 @@ class mod_tadc_resource_test extends advanced_testcase {
         $this->assertEquals('isbn:9786612649073', $tadc->container_identifier);
     }
 
+    public function test_rewrite_course_code_for_tadc()
+    {
+        $this->resetAfterTest(true);
+        set_config('course_code_format', '^11\-22_%COURSE_CODE%(\-[A-Z]{3,4})?$', 'tadc');
+        $this->assertEquals('FOO123', tadc_format_course_id_for_tadc('11-22_FOO123-TEST'));
+        $this->assertEquals('FOO123', tadc_format_course_id_for_tadc('11-22_FOO123'));
+        set_config('course_code_format', '%COURSE_CODE%', 'tadc');
+        $this->assertEquals('11-22_FOO123-TEST', tadc_format_course_id_for_tadc('11-22_FOO123-TEST'));
+    }
+
 }

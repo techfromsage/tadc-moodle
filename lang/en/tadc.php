@@ -63,6 +63,8 @@ $string['config_allow_requests'] = 'Allow TADC requests from Moodle';
 $string['config_allow_requests_desc'] = 'Requests can be sent to TADC from Moodle and a digitisation resource will be created within the course';
 $string['config_allow_downloads'] = 'Allow TADC downloads from Moodle';
 $string['config_allow_downloads_desc'] = 'Moodle can be used to specify enrollment in a course, and the bundle player will point the user to Moodle to download the document';
+$string['course_code_format'] = 'Course ID format in Moodle';
+$string['course_code_format_desc'] = 'Since course IDs may be stored differently in Moodle than TADC, this setting lets you configure how to translate between the two: it accepts regexes, but must contain "%COURSE_CODE%" as the part of the string that matches with how the course code appears in TADC.  For example:`^20\\d{2}-\\d{2}_%COURSE_CODE%\\-(FOO|BAR|BAZ)$`';
 
 /*
 * Messages for API reason codes:
@@ -93,6 +95,9 @@ $string['UnableToDetermineSerialsHoldingsCoverageMessage'] = 'The system cannot 
 // WITHDRAWN
 $string['WithdrawnByAdminDiscretionMessage'] = 'The request was withdrawn by library staff.';
 
+// SUCCESS
+$string['QueuedForPackingMessage'] = 'The request is successful. The request has been sent to the packer to attach a coversheet to the document.';
+
 // Help messages:
 $string['booksectiontitle_help'] = 'Book extract requests must contain a chapter or section title, a page range, or, preferably, both.';
 $string['bookstartpage'] = $string['startpage'];
@@ -119,3 +124,9 @@ $string['journaldatepublished_help'] = $string['volume_help'];
 $string['journalcontainertitle'] = $string['journaltitle'];
 $string['journalcontainertitle_help'] = 'Article requests must include a DOI/PMID, a journal title, or an ISSN.';
 $string['issn_help'] = $string['journalcontainertitle_help'];
+
+/**
+ * Errors
+ */
+
+$string['notauthorizedfordownload'] = 'Sorry, you must be enrolled in a course associated with this digitisation to download it.';
