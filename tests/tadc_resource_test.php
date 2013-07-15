@@ -297,4 +297,32 @@ class mod_tadc_resource_test extends advanced_testcase {
         $this->assertEquals('11-22_FOO123-TEST', tadc_format_course_id_for_tadc('11-22_FOO123-TEST'));
     }
 
+    public function test_match_courses_from_tadc_code()
+    {
+        $this->resetAfterTest(true);
+        set_config('course_code_format', '^11\-22_%COURSE_CODE%(\-[A-Z]{3})?$', 'tadc');
+        $matching_courses = array('11-22_ABC123', '11-22_ABC123-FOO');
+        $not_matching_courses = array('11-22_ABC123-FOOBAR', '11-23_ABC123', '11-22_ABC567');
+        foreach($matching_courses as $course)
+        {
+            $this->getDataGenerator()->create_course(array('idnumber'=>$course));
+        }
+        foreach($not_matching_courses as $course)
+        {
+            $this->getDataGenerator()->create_course(array('idnumber'=>$course));
+        }
+
+        $courses = tadc_courses_from_tadc_course_id('ABC123');
+        $this->assertEquals(2, count($courses));
+        foreach($courses as $course)
+        {
+            $this->assertTrue(in_array($course->idnumber, $matching_courses));
+            $this->assertFalse(in_array($course->idnumber, $not_matching_courses));
+        }
+        set_config('course_code_format', '^[0-9]{2}\-[0-9]{2}_%COURSE_CODE%(\-[A-Z]{3})?$', 'tadc');
+        $matching_courses[] = '11-23_ABC123';
+        unset($not_matching_courses[1]);
+        $courses = tadc_courses_from_tadc_course_id('ABC123');
+        $this->assertEquals(3, count($courses));
+    }
 }

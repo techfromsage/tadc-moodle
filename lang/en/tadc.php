@@ -64,7 +64,7 @@ $string['config_allow_requests_desc'] = 'Requests can be sent to TADC from Moodl
 $string['config_allow_downloads'] = 'Allow TADC downloads from Moodle';
 $string['config_allow_downloads_desc'] = 'Moodle can be used to specify enrollment in a course, and the bundle player will point the user to Moodle to download the document';
 $string['course_code_format'] = 'Course ID format in Moodle';
-$string['course_code_format_desc'] = 'Since course IDs may be stored differently in Moodle than TADC, this setting lets you configure how to translate between the two: it accepts regexes, but must contain "%COURSE_CODE%" as the part of the string that matches with how the course code appears in TADC.  For example:`^20\\d{2}-\\d{2}_%COURSE_CODE%\\-(FOO|BAR|BAZ)$`';
+$string['course_code_format_desc'] = 'Since course IDs may be stored differently in Moodle than TADC, this setting lets you configure how to translate between the two: it accepts regexes, but must contain "%COURSE_CODE%" as the part of the string that matches with how the course code appears in TADC.  For example:`^20\\[0-9\]{2}-\\[0-9\]{2}_%COURSE_CODE%\\-(FOO|BAR|BAZ)$`';
 
 /*
 * Messages for API reason codes:
