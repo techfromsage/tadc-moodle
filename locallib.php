@@ -116,7 +116,7 @@ function tadc_resource_to_referent($resource)
  */
 function tadc_build_request($request)
 {
-    global $CONTEXT, $DB, $COURSE, $USER;
+    global $COURSE, $USER;
     $course_code_field = get_config('tadc', 'course_code_field');
     $ts = new DateTime();
     $params = array_merge(array('url_ver'=>'Z39.88-2004', 'url_ctx_fmt'=>'info:ofi/fmt:kev:mtx:ctx', 'url_tim'=>$ts->format(DateTime::ISO8601)), tadc_resource_to_referent($request));
@@ -124,13 +124,42 @@ function tadc_build_request($request)
     $params['rfr_id'] = $rfr_id->out();
     $params['rfr.type'] = 'http://schemas.talis.com/tadc/v1/referrers/moodle/1';
 
-    $context = context_course::instance($COURSE->id);
+    $startDate = @$request->course_start ? $request->course_start : $COURSE->startdate;
+    $endDate = @$request->course_end ? $request->course_end : get_course_end($COURSE);
+
+    $size = @$request->expected_enrollment;
+    if(empty($size))
+    {
+        $context = context_course::instance($COURSE->id);
+        $size = count(get_enrolled_users($context));
+    }
+    $params = array_merge($params, array(
+        'rfe.code'=>tadc_format_course_id_for_tadc($COURSE->$course_code_field),
+        'rfe.name'=>$COURSE->fullname,
+        'rfe.sdate'=>date_format_string($startDate, '%Y-%m-%d'),
+        'rfe.edate'=>date_format_string($endDate, '%Y-%m-%d'),
+        'req.email'=>$USER->email,
+        'rfe.size'=>$size,
+        'req.name'=>$USER->firstname . ' ' . $USER->lastname
+    ));
+    if($params['rfe.size'] == 0) // or false, or null
+    {
+        $params['rfe.size'] = 1;
+    }
+
+    return $params;
+}
+
+function get_course_end($course)
+{
+    global $DB;
+    $context = context_course::instance($course->id);
     $enrolled_users = get_enrolled_users($context);
     // flail about to get some semblance of course end date
     $courseLength = 0;
     foreach($enrolled_users as $user)
     {
-        if($endTimeStamp = enrol_get_enrolment_end($COURSE->id, $user->id))
+        if($endTimeStamp = enrol_get_enrolment_end($course->id, $user->id))
         {
             if($endTimeStamp > $courseLength)
             {
@@ -141,30 +170,17 @@ function tadc_build_request($request)
 
     if($courseLength == 0)
     {
-        $enrolment = $DB->get_record('enrol', array('courseid'=>$COURSE->id, 'enrol'=>'manual'),'*');
+        $enrolment = $DB->get_record('enrol', array('courseid'=>$course->id, 'enrol'=>'manual'),'*');
         if($enrolment)
         {
             $courseLength = $enrolment->enrolperiod;
         }
+        if($courseLength !== 0)
+        {
+            $courseLength = $course->startdate + $courseLength;
+        }
     }
-
-    $startDate = date_format_string($COURSE->startdate, '%Y-%m-%d');
-    $endDate = date_format_string($COURSE->startdate + $courseLength, '%Y-%m-%d');
-    $params = array_merge($params, array(
-        'rfe.code'=>tadc_format_course_id_for_tadc($COURSE->$course_code_field),
-        'rfe.name'=>$COURSE->fullname,
-        'rfe.sdate'=>$startDate,
-        'rfe.edate'=>$endDate,
-        'req.email'=>$USER->email,
-        'rfe.size'=>count($enrolled_users),
-        'req.name'=>$USER->firstname . ' ' . $USER->lastname
-    ));
-    if($params['rfe.size'] == 0) // or false, or null
-    {
-        $params['rfe.size'] = 1;
-    }
-
-    return $params;
+    return $courseLength;
 }
 
 /**

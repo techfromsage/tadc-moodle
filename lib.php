@@ -111,6 +111,18 @@ function tadc_update_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
         {
             $resource->referral_message = $tadc->referral_message;
         }
+        if(@$tadc->course_start)
+        {
+            $resource->course_start = $tadc->course_start;
+        }
+        if(@$tadc->course_end)
+        {
+            $resource->course_end = $tadc->course_end;
+        }
+        if(@$tadc->expected_enrollment)
+        {
+            $resource->expected_enrollment = $tadc->expected_enrollment;
+        }
         $response = tadc_submit_request_form($resource);
         tadc_update_resource_with_tadc_response($resource, $response);
         $resource->name = tadc_build_title_string($resource);

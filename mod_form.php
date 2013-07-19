@@ -57,7 +57,8 @@ class mod_tadc_mod_form extends moodleform_mod {
                 $fieldMap = array(
                     'rft.atitle'=>'section_title','rft.spage'=>'start_page','rft.epage'=>'end_page',
                     'rft.doi'=>'doi','rft.isbn'=>'isbn','rft.btitle'=>'container_title','rft.issn'=>'issn','rft.au'=>'container_creator',
-                    'rft.volume'=>'volume','rft.issue'=>'issue','rft.date'=>'publication_date'
+                    'rft.volume'=>'volume','rft.issue'=>'issue','rft.date'=>'publication_date', 'rfe.sdate'=>'course_start',
+                    'rfe.edate'=>'course_end', 'rfe.size'=>'expected_enrollment'
                 );
                 foreach($errors['errors'] as $error)
                 {
@@ -245,9 +246,36 @@ class mod_tadc_mod_form extends moodleform_mod {
 
         $mform->addElement('header', 'request_info', get_string("other_request_info_header", 'tadc'));
 
+        // Course start date
+        if($COURSE->startdate)
+        {
+            $mform->addElement('hidden', 'course_start');
+            $mform->setDefault('course_start', $COURSE->startdate);
+        } else {
+            $mform->addElement('date_selector', 'course_start', get_string('course_start', 'tadc'));
+        }
+        $mform->setType('course_start', PARAM_INT);
+
+        // Course end date
+        if($COURSE->startdate && get_course_end($COURSE) != $COURSE->startdate)
+        {
+            $mform->addElement('hidden', 'course_end');
+            $mform->setDefault('course_end', get_course_end($COURSE));
+        } else {
+            $mform->addElement('date_selector', 'course_end', get_string('course_end', 'tadc'));
+        }
+        $mform->setType('course_end', PARAM_INT);
+
+        // Expected enrollment of course
+        $context = context_course::instance($COURSE->id);
+        $mform->addElement('text', 'expected_enrollment', get_string('expected_enrollment', 'tadc'), array('size'=>'4'));
+        $mform->setDefault('expected_enrollment', count(get_enrolled_users($context)));
+        $mform->setType('expected_enrollment', PARAM_TEXT);
+
         // digitisation needed by date
         $mform->addElement('date_selector', 'needed_by', get_string('daterequired', 'tadc'));
         $mform->setType('needed_by', PARAM_TEXT);
+
 
         // add standard elements, common to all modules
         $this->standard_coursemodule_elements();

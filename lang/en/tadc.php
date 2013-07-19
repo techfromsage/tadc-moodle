@@ -46,6 +46,10 @@ $string['requestformresubmittext'] = 'Re-submit request with these values';
 $string['alternate_editions_mesg'] = 'The library holds the following editions, which may be available for digitisation:';
 $string['edition'] = 'Edition';
 $string['invalidtadcid'] = 'ID does not appear to be a valid digitisation request';
+$string['course_start'] = 'Course start date';
+$string['course_end'] = 'Course end date';
+$string['expected_enrollment'] = 'Expected enrollment for entire course';
+
 /**
  * Admin settings
  */

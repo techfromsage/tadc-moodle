@@ -107,6 +107,8 @@ class mod_tadc_resource_test extends advanced_testcase {
         $tadc->publication_date = '2013';
         $tadc->publisher = 'FooBar Press';
         $tadc->needed_by = $now;
+        $tadc->course_start = $now;
+        $tadc->course_end = $now;
         $tadc->container_creator = 'Baz, Bar';
         $params = tadc_build_request($tadc);
         $this->assertArrayHasKey('url_ver', $params);
