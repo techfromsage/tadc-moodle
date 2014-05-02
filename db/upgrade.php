@@ -161,4 +161,66 @@ function xmldb_tadc_upgrade($oldversion) {
     {
         upgrade_mod_savepoint(true, 2013071901, 'tadc');
     }
+
+    if($oldversion < 2014050201)
+    {
+        upgrade_mod_savepoint(true, 2014050201, 'tadc');
+    }
+
+    if($oldversion < 2014050202)
+    {
+        require_once ($CFG->dirroot.'/mod/tadc/locallib.php');
+        // Define field citation to be added to tadc.
+        $table = new xmldb_table('tadc');
+        $field = new xmldb_field('citation', XMLDB_TYPE_TEXT, null, null, null, null, null, 'reason_code');
+
+        // Conditionally launch add field citation.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $field = new xmldb_field('citationformat', XMLDB_TYPE_INTEGER, '4', null, null, null, null, 'citation');
+
+        // Conditionally launch add field citationformat.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Migrate the old data as a citation into the citation field
+        $records = $DB->get_records('tadc');
+        foreach($records as $record)
+        {
+            $record->citation = tadc_generate_html_citation($record);
+            $record->citationformat = FORMAT_HTML;
+            $record->name = tadc_build_title_string($record);
+            if(empty($record->name))
+            {
+                $record->name = "Digitised resource";
+            }
+            $DB->update_record('tadc', $record);
+        }
+
+        // Drop all of the legacy fields
+        $fieldsToDrop = array('type','section_title','section_creator','start_page','end_page','container_title',
+            'document_identifier','container_identifier','publication_date','volume','issue','publisher','needed_by',
+            'edition','container_creator'
+        );
+
+        foreach($fieldsToDrop as $dropField)
+        {
+            $field = new xmldb_field($dropField);
+
+            // Conditionally launch drop field
+            if ($dbman->field_exists($table, $field)) {
+                $dbman->drop_field($table, $field);
+            }
+        }
+
+        // Changing nullability of field name on table tadc to not null.
+        $field = new xmldb_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, 'course');
+
+        // Launch change of nullability for field name.
+        $dbman->change_field_notnull($table, $field);
+
+        upgrade_mod_savepoint(true, 2014050202, 'tadc');
+    }
 }

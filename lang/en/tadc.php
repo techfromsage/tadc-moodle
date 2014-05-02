@@ -60,15 +60,27 @@ $string['shared_secret_desc'] = 'Shared secret salt for verifying requests.  Thi
 $string['trackback_endpoint'] = 'Trackback location';
 $string['trackback_endpoint_desc'] = 'URL of trackback endpoint so TADC can send status updates.';
 $string['api_key'] = 'A valid TADC API key';
-$string['api_key_desc'] = 'Generate this key in the TADC Settings/Manage access keys menu';
+$string['api_key_desc'] = 'Generate this key in the TADC Settings/Integrations menu';
 $string['course_code_field'] = 'Course code field';
 $string['course_code_field_desc'] = 'The Moodle Course Field that corresponds to the TADC course code';
 $string['config_allow_requests'] = 'Allow TADC requests from Moodle';
 $string['config_allow_requests_desc'] = 'Requests can be sent to TADC from Moodle and a digitisation resource will be created within the course';
 $string['config_allow_downloads'] = 'Allow TADC downloads from Moodle';
 $string['config_allow_downloads_desc'] = 'Moodle can be used to specify enrollment in a course, and the bundle player will point the user to Moodle to download the document';
-$string['course_code_format'] = 'Course ID format in Moodle';
-$string['course_code_format_desc'] = 'Since course IDs may be stored differently in Moodle than TADC, this setting lets you configure how to translate between the two: it accepts regexes, but must contain "%COURSE_CODE%" as the part of the string that matches with how the course code appears in TADC.  For example:`^20\\[0-9\]{2}-\\[0-9\]{2}_%COURSE_CODE%\\-(FOO|BAR|BAZ)$`';
+$string['course_code_regex'] = 'Course ID regex';
+$string['course_code_regex_desc'] = 'Since course IDs may be stored differently in Moodle than TADC, this setting lets you configure how to translate between the two: it accepts regexes, enclose the part of the string that matches with how the course code appears in TADC in parentheses.  Example: `^([A-Za-z0-9]{6})_[0-9]{6}$`';
+
+$string['server_details_heading'] = 'Server details';
+$string['server_details_desc'] = 'Host name and tenant code used for Talis Aspire Digitised Content';
+
+$string['moodle_course_details_heading'] = 'Moodle course details';
+$string['moodle_details_desc'] = 'Where courses are defined in Moodle and how to map them Talis Aspire Digitised Content';
+
+$string['tadc_integration_heading'] = 'Access key';
+$string['tadc_integration_desc'] = 'To use Digitised Content from within Moodle, an access key/shared secret must be generated from with TADC.  To do this, log into Talis Aspire Digitised Content, and from the "Admin" menu, select "Integrations" and create a new access key';
+
+$string['tadc_services_heading'] = 'Talis Aspire Digitised Content Services';
+$string['tadc_services_desc'] = 'Specify the TADC services you wish to enable from Moodle';
 
 /*
 * Messages for API reason codes:

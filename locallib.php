@@ -28,6 +28,7 @@
 defined('MOODLE_INTERNAL') || die();
 require_once(dirname(__FILE__)."/lib.php");
 
+define('TADC_LTI_LAUNCH_PATH', '/lti/launch');
 $_tadc_client = null;
 /**
  * Maps a TADC digisation request resource (record) into an OpenURL array
@@ -461,6 +462,51 @@ function tadc_create_new_tadc()
     $tadc->reason_code = null;
     $tadc->other_response_data = null;
     return $tadc;
+}
+
+function tadc_add_lti_properties(stdClass &$tadc)
+{
+    global $CFG;
+
+    $pluginSettings = get_config('tadc');
+
+    $tadc->toolurl = $pluginSettings->targetAspire . TADC_LTI_LAUNCH_PATH;
+    $tadc->instructorchoiceacceptgrades = false;
+    $tadc->instructorchoicesendname = false;
+    $tadc->instructorchoicesendemailaddr = false;
+    $tadc->launchcontainer = null;
+    $tadc->servicesalt = uniqid('', true);
+    $course = get_course($tadc->course);
+    $customLTIParams = array('launch_identifier='.uniqid());
+    $baseKGCode = $course->{$pluginSettings->courseCodeField};
+    if(isset($pluginSettings->targetKG))
+    {
+        $customLTIParams[] = "knowledge_grouping=".$pluginSettings->targetKG;
+    }
+    if(isset($pluginSettings->moduleCodeRegex))
+    {
+        if(preg_match("/".$pluginSettings->moduleCodeRegex."/", $baseKGCode, $matches))
+        {
+            if(!empty($matches) && isset($matches[1]))
+            {
+                $baseKGCode = $matches[1];
+            }
+        }
+    }
+    $customLTIParams[] = 'knowledge_grouping_code='.$baseKGCode;
+    if(isset($pluginSettings->timePeriodRegex) && isset($pluginSettings->timePeriodMapping))
+    {
+        $timePeriodMapping = json_decode($pluginSettings->timePeriodMapping, true);
+        if(preg_match("/".$pluginSettings->timePeriodRegex."/", $course->{$pluginSettings->courseCodeField}, $matches))
+        {
+            if(!empty($matches) && isset($matches[1]) && isset($timePeriodMapping[$matches[1]]))
+            {
+                $customLTIParams[] = 'time_period='.$timePeriodMapping[$matches[1]];
+            }
+        }
+    }
+    $tadc->instructorcustomparameters= implode("\n", $customLTIParams);
+    $tadc->debuglaunch = false;
 }
 
 /**
