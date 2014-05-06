@@ -17,38 +17,17 @@ $string['tadc:addinstance'] = 'Add course reading';
 $string['tadc:updateinstance'] = 'Update course reading';
 $string['tadc:view'] = 'View course reading';
 $string['tadc:download'] = 'Download course reading';
-$string['daterequired'] = 'Needed by';
-$string['bookheader'] = 'Book information';
-$string['journalheader'] = 'Journal information';
-$string['booksectionheader'] = 'Chapter or page range';
-$string['other_request_info_header'] = 'Other request information';
-$string['journalsectionheader'] = 'Article';
-$string['journalsectiontitle'] = 'Article title';
-$string['booksectiontitle'] = 'Chapter or section title';
-$string['containercreator'] = 'Author';
-$string['isbn'] = 'ISBN';
-$string['issn'] = 'ISSN/eISSN';
-$string['sectioncreator'] = 'Author(s)';
-$string['sectionstartpage'] = 'Start page';
-$string['sectionendpage'] = 'End page';
-$string['journaltitle'] = 'Journal title';
-$string['booktitle'] = 'Book title';
-$string['publisher'] = 'Publisher/imprint';
-$string['datepublished'] = 'Date published';
-$string['volume'] = 'Volume';
-$string['issue'] = 'Issue';
-$string['doi'] = 'DOI';
-$string['pmid'] = 'PubMed ID';
-$string['journalrequestlink'] = 'Request a journal article';
-$string['bookrequestlink'] = 'Request a chapter or section from a book';
+
 $string['requestformsubmittext'] = 'Submit request';
 $string['requestformresubmittext'] = 'Re-submit request with these values';
-$string['alternate_editions_mesg'] = 'The library holds the following editions, which may be available for digitisation:';
-$string['edition'] = 'Edition';
+
 $string['invalidtadcid'] = 'ID does not appear to be a valid digitisation request';
-$string['course_start'] = 'Course start date';
-$string['course_end'] = 'Course end date';
-$string['expected_enrollment'] = 'Expected enrollment for entire course';
+
+$string['generalheader'] = 'General';
+$string['activity_name'] = 'Title';
+$string['default_activity_name'] = 'Course reading';
+$string['save_and_continue'] = "Request digitisation";
+
 
 /**
  * Admin settings

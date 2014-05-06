@@ -69,13 +69,7 @@ function tadc_supports($feature) {
 function tadc_add_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
     require_once(dirname(__FILE__).'/locallib.php');
     global $DB;
-
-    tadc_form_identifiers_to_resource_identifiers($tadc);
     $tadc->id = $DB->insert_record('tadc', $tadc);
-    $response = tadc_submit_request_form($tadc);
-    tadc_update_resource_with_tadc_response($tadc, $response);
-    $tadc->name = tadc_build_title_string($tadc);
-    $DB->update_record('tadc', $tadc);
     return $tadc->id;
 }
 

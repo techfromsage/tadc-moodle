@@ -56,14 +56,13 @@ if($tadc->request_status === 'REJECTED' && $tadc->reason_code === 'InvalidReques
     redirect(new moodle_url('/course/modedit.php', array('update'=>$cm->id)));
 }
 
-$title = tadc_build_title_string($tadc);
-add_to_log($course->id, 'tadc', 'view', "view.php?id={$cm->id}", $title, $cm->id);
+add_to_log($course->id, 'tadc', 'view', "view.php?id={$cm->id}", $tadc->name, $cm->id);
 
 /// Print the page header
 
 $PAGE->set_url('/mod/tadc/view.php', array('id' => $cm->id));
 
-$PAGE->set_title(format_string($title));
+$PAGE->set_title(format_string($tadc->name));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
 
@@ -195,6 +194,46 @@ if($tadc->request_status === 'LIVE')
         $requestMarkup .= '<p><input type="submit" value="Submit referral request" /></p>';
         $requestMarkup .= '</form></div>';
     }
+} else {
+    // If there is no request_status, the user hasn't successfully submitted a request, yet
+    // Request the launch content with an iframe tag instead of the standard moodle LTI object tag
+    echo '<iframe id="contentframe" height="600px" width="100%" type="text/html" src="launch.php?id='.$cm->id.'" frameborder="0"></iframe>';
+
+    //Output script to make the object tag be as large as possible
+    $resize = '
+        <script type="text/javascript">
+        //<![CDATA[
+            YUI().use("yui2-dom", function(Y) {
+                //Take scrollbars off the outer document to prevent double scroll bar effect
+                document.body.style.overflow = "hidden";
+
+                var dom = Y.YUI2.util.Dom;
+                var frame = document.getElementById("contentframe");
+
+                var padding = 15; //The bottom of the iframe wasn\'t visible on some themes. Probably because of border widths, etc.
+
+                var lastHeight;
+
+                var resize = function(){
+                    var viewportHeight = dom.getViewportHeight();
+
+                    if(lastHeight !== Math.min(dom.getDocumentHeight(), viewportHeight)){
+
+                        frame.style.height = viewportHeight - dom.getY(frame) - padding + "px";
+
+                        lastHeight = Math.min(dom.getDocumentHeight(), dom.getViewportHeight());
+                    }
+                };
+
+                resize();
+
+                setInterval(resize, 250);
+            });
+        //]]
+        </script>
+';
+
+    echo $resize;
 }
 echo $OUTPUT->box($requestMarkup);
 // Finish the page

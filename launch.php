@@ -15,4 +15,4 @@ add_to_log($course->id, "tadc", "launch", "launch.php?id=$cm->id", "$tadc->id");
 
 $tadc->cmid = $cm->id;
 tadc_add_lti_properties($tadc);
-lti_view($tadc);
+tadc_do_lti_launch($tadc);
