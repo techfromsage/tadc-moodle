@@ -234,7 +234,7 @@ function tadc_add_lti_properties(stdClass &$tadc)
     $customLTIParams[] = 'course_name='.$course->fullname;
     $customLTIParams[] = 'course_start='.date('Y-m-d', $course->startdate);
     $customLTIParams[] = 'source=' . TADC_SOURCE_URI;
-    $customLTIParams[] = 'trackback=' . new moodle_url('/mod/tadc/trackback.php', array('t'=>$tadc->id, 'api_key'=>$pluginSettings->api_key));
+    $customLTIParams[] = 'trackback=' . urlencode(new moodle_url('/mod/tadc/trackback.php', array('t'=>$tadc->id, 'api_key'=>$pluginSettings->api_key)));
     $tadc->resourcekey = $pluginSettings->api_key;
     $tadc->password = $pluginSettings->tadc_shared_secret;
     $tadc->instructorcustomparameters= implode("\n", $customLTIParams);
@@ -376,23 +376,41 @@ function tadc_courses_from_tadc_course_id($courseId)
     return $DB->get_records_select('course', $tadc_cfg->course_code_field . " $rel ?", array($courseId));
 }
 
-function tadc_verify_request_signature($method, $url, array $params = array())
+function tadc_verify_request_signature($secret, array $args = array())
 {
-    $pluginConfig = get_config('tadc');
-    if(!isset($params['oauth_consumer_key']) || $params['oauth_consumer_key'] != $pluginConfig->api_key)
+    // Generate our key to sign
+    $keys = array();
+    foreach(array_keys($args) as $key)
     {
-        return false;
+        $keys[] = urlencode($key);
     }
-    if(!isset($params['oauth_signature']))
+    $values = array();
+    foreach(array_values($args) as $value)
     {
-        return false;
+        $values[] = urlencode($value);
     }
-    global $CFG;
-    require_once($CFG->dirroot.'/mod/lti/OAuth.php');
-    $request = \moodle\mod\lti\OAuthRequest::from_request($method, $url, $params);
-    $signature_method = new \moodle\mod\lti\OAuthSignatureMethod_HMAC_SHA1();
-    $sig = $request->build_signature($signature_method, $pluginConfig->api_key, $pluginConfig->tadc_shared_secret);
-    return $params['oauth_signature'] === $sig;
+
+    $params = array_combine($keys, $values);
+
+    // Parameters are sorted by name, using lexicographical byte value ordering.
+    // Ref: Spec: 9.1.1 (1)
+    uksort($params, 'strcmp');
+
+    $pairs = array();
+    foreach ($params as $parameter => $value) {
+        if (is_array($value)) {
+            // If two or more parameters share the same name, they are sorted by their value
+            // Ref: Spec: 9.1.1 (1)
+            natsort($value);
+            foreach ($value as $duplicate_value) {
+                $pairs[] = $parameter . '=' . $duplicate_value;
+            }
+        } else {
+            $pairs[] = $parameter . '=' . $value;
+        }
+    }
+    $key = urlencode(implode("&", $pairs));
+    return hash_hmac('sha256', $key, $secret);
 }
 /**
  * A client class to interact with the TADC service

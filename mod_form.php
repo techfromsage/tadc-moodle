@@ -22,6 +22,7 @@ class mod_tadc_mod_form extends moodleform_mod {
         $mform->setAdvanced('showdescription');
 
         $this->standard_coursemodule_elements();
+
         $this->add_action_buttons(true, get_string('save_and_continue', 'tadc'), false);
 
     }
