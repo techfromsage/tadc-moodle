@@ -27,6 +27,7 @@
 require_once('../../config.php');
 require_once($CFG->dirroot.'/mod/tadc/lib.php');
 require_once($CFG->dirroot.'/mod/tadc/locallib.php');
+require_once($CFG->dirroot.'/mod/lti/locallib.php');
 
 $courseid = required_param('course', PARAM_INT);
 $instanceid = required_param('instanceid', PARAM_INT);

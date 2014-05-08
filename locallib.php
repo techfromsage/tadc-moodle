@@ -239,6 +239,7 @@ function tadc_add_lti_properties(stdClass &$tadc)
     $tadc->password = $pluginSettings->tadc_shared_secret;
     $tadc->instructorcustomparameters= implode("\n", $customLTIParams);
     $tadc->debuglaunch = false;
+    var_dump($tadc);
 }
 
 function tadc_generate_launch_url($tadcHost, $tadcTenantCode)
@@ -300,7 +301,7 @@ function tadc_do_lti_launch(stdClass $tadc)
 
     $orgid = $lticonfig['organizationid'];
 
-    $course = $PAGE->course;
+    $course = get_course($tadc->course);
     $requestparams = lti_build_request($tadc, $lticonfig, $course);
 
     $launchcontainer = lti_get_launch_container($tadc, $lticonfig);

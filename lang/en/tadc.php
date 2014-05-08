@@ -5,12 +5,7 @@ $string['modulenameplural'] = 'Digitization requests';
 $string['userpreferences'] = 'User preferences';
 $string['tenantshortcode'] = 'Tenant code';
 $string['tenantshortcode_desc'] = 'Tenancy short code used in Talis Aspire (e.g. "broadminster")';
-$string['needed_by'] = 'Needed by';
-$string['booksectionheader'] = 'Chapter or section of a book';
-$string['chaptertitle'] = 'Chapter title or number';
-$string['startpage'] = 'Start page';
-$string['endpage'] = 'End page';
-$string['isbn'] = 'ISBN (10 or 13)';
+
 $string['pluginadministration'] = '';
 $string['pluginname'] = 'Course reading';
 $string['tadc:addinstance'] = 'Add course reading';
@@ -18,16 +13,12 @@ $string['tadc:updateinstance'] = 'Update course reading';
 $string['tadc:view'] = 'View course reading';
 $string['tadc:download'] = 'Download course reading';
 
-$string['requestformsubmittext'] = 'Submit request';
-$string['requestformresubmittext'] = 'Re-submit request with these values';
-
-$string['invalidtadcid'] = 'ID does not appear to be a valid digitisation request';
 
 $string['generalheader'] = 'General';
 $string['activity_name'] = 'Title';
 $string['default_activity_name'] = 'Course reading';
 $string['save_and_continue'] = "Request digitisation";
-
+$string['request_details'] = "Request details";
 
 /**
  * Admin settings
@@ -93,35 +84,11 @@ $string['WithdrawnByAdminDiscretionMessage'] = 'The request was withdrawn by lib
 // SUCCESS
 $string['QueuedForPackingMessage'] = 'The request is successful. The request has been sent to the packer to attach a coversheet to the document.';
 
-// Help messages:
-$string['booksectiontitle_help'] = 'Book extract requests must contain a chapter or section title, a page range, or, preferably, both.';
-$string['bookstartpage'] = $string['startpage'];
-$string['bookstartpage_help'] = $string['booksectiontitle_help'];
-$string['bookendpage'] = $string['endpage'];
-$string['bookendpage_help'] = $string['booksectiontitle_help'];
-$string['bookcontainertitle'] = $string['booktitle'];
-$string['bookcontainertitle_help'] = 'Book extract requests must contain either a book title, author, and date published or an ISBN';
-$string['containercreator_help'] = $string['bookcontainertitle_help'];
-$string['isbn_help'] = $string['bookcontainertitle_help'];
-$string['bookdatepublished'] = $string['datepublished'];
-$string['bookdatepublished_help'] = $string['bookcontainertitle_help'];
-
-
-$string['journalsectiontitle_help'] = 'Article requests must include a DOI/PMID, an article title, or a start page.';
-$string['journalstartpage'] = $string['startpage'];
-$string['journalstartpage_help'] = $string['journalsectiontitle_help'];
-$string['journaldatepublished'] = $string['datepublished'];
-
-$string['volume_help'] = 'Article requests must include either a DOI/PMID or volume, issue, and/or publication date';
-$string['issue_help'] = $string['volume_help'];
-$string['journaldatepublished_help'] = $string['volume_help'];
-
-$string['journalcontainertitle'] = $string['journaltitle'];
-$string['journalcontainertitle_help'] = 'Article requests must include a DOI/PMID, a journal title, or an ISSN.';
-$string['issn_help'] = $string['journalcontainertitle_help'];
 
 /**
  * Errors
  */
 
 $string['notauthorizedfordownload'] = 'Sorry, you must be enrolled in a course associated with this digitisation to download it.';
+
+$string['return_to_course'] = 'Click <a href="{$a->link}" target="_top">here</a> to return to the course.';

@@ -89,7 +89,10 @@ function tadc_update_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
     require_once(dirname(__FILE__).'/locallib.php');
     global $DB;
     $tadc->timemodified = time();
-
+    if(((!isset($tadc->id)) || empty($tadc->id)) && isset($tadc->instance))
+    {
+        $tadc->id = $tadc->instance;
+    }
     return $DB->update_record('tadc', $tadc);
 
 }
@@ -213,31 +216,23 @@ function tadc_get_extra_capabilities() {
  * @param cm_info $cm
  */
 function tadc_cm_info_dynamic(cm_info $cm) {
-    global $DB;
+    global $DB, $PAGE;
     $context = context_module::instance($cm->id);
     if($cm->modname === 'tadc')
     {
         $tadc = $DB->get_record('tadc', array('id'=>$cm->instance));
-        $content = '<div class="tadc_citation">' . $tadc->citation . '</div>';
+        $tadc->showdescription = $cm->showdescription;
+        $tadc->cmid = $cm->id;
+        $tadc->context = $context;
         if($tadc->request_status !== 'LIVE')
         {
             if(!has_capability('mod/tadc:updateinstance', $context))
             {
                 $cm->set_user_visible(false);
             }
-            if($tadc->request_status)
-            {
-                $content .= '<div class="tadc_status"><strong>' . $tadc->request_status . ':</strong>  ';
-                if($tadc->reason_code)
-                {
-                    $content .= get_string($tadc->reason_code . 'Message', 'tadc');
-                }
-
-                $content .= '</div>';
-            }
         }
-
-        $cm->set_content($content);
+        $renderer = $PAGE->get_renderer('mod_tadc');
+        $cm->set_content($renderer->display_tadc($tadc));
     }
 }
 
@@ -257,13 +252,16 @@ function tadc_get_coursemodule_info($cm) {
     global $DB;
     error_log('tadc_get_coursemodule_info');
     if (!($tadc = $DB->get_record('tadc', array('id' => $cm->instance),
-        'id, name, citation, citationformat, request_status, reason_code'))) {
+        'id, name, citation, citationformat, request_status, reason_code, intro, introformat'))) {
         return NULL;
     }
 
     $cminfo = new cached_cm_info();
     $cminfo->name = $tadc->name;
+    $cminfo->intro = $tadc->intro;
+    $cminfo->introformat = $tadc->introformat;
     $cminfo->citation = $tadc->citation;
+    $cminfo->citationformat = $tadc->citationformat;
     $cminfo->request_status = $tadc->request_status;
     $cminfo->reason_code = $tadc->reason_code;
     return $cminfo;

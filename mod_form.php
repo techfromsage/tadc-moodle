@@ -9,8 +9,13 @@ require_once ($CFG->dirroot.'/mod/tadc/locallib.php');
 class mod_tadc_mod_form extends moodleform_mod {
 
     function definition() {
-
         $mform =& $this->_form;
+        $tadc = $this->current;
+        if(isset($tadc->citation))
+        {
+            $mform->addElement('header', 'requestdetails', get_string('request_details', 'tadc'));
+            $mform->addElement('html', '<div class="tadc_citation">'.format_text($tadc->citation, $tadc->citationformat) . '</div>');
+        }
         $mform->addElement('header', 'general', get_string('generalheader', 'tadc'));
         $mform->addElement('text', 'name', get_string('activity_name', 'tadc'));
         $mform->setDefault('name', get_string('default_activity_name', 'tadc'));
@@ -23,7 +28,12 @@ class mod_tadc_mod_form extends moodleform_mod {
 
         $this->standard_coursemodule_elements();
 
-        $this->add_action_buttons(true, get_string('save_and_continue', 'tadc'), false);
+        if(isset($tadc->id) && !empty($tadc->id))
+        {
+            $this->add_action_buttons();
+        } else {
+            $this->add_action_buttons(true, get_string('save_and_continue', 'tadc'), false);
+        }
 
     }
 }
