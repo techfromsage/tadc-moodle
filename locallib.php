@@ -31,51 +31,13 @@ require_once(dirname(__FILE__)."/lib.php");
 define('TADC_LTI_LAUNCH_PATH', '/lti/launch');
 define('TADC_SOURCE_URI', 'http://schemas.talis.com/tadc/v1/referrers/moodle/2');
 
-$_tadc_client = null;
-
-
 /**
- * @param stdClass $request
- * @param string $tenant
- * @return array
+ * Attempts to determine the rough end date for the course
+ *
+ * @param stdClass $course
+ * @return bool|int
  */
-function tadc_build_request($request)
-{
-    global $COURSE, $USER;
-    $course_code_field = get_config('tadc', 'course_code_field');
-    $ts = new DateTime();
-    $params = array_merge(array('url_ver'=>'Z39.88-2004', 'url_ctx_fmt'=>'info:ofi/fmt:kev:mtx:ctx', 'url_tim'=>$ts->format(DateTime::ISO8601)), tadc_resource_to_referent($request));
-    $rfr_id = new moodle_url('/mod/tadc/view.php', array('t'=>$request->id));
-    $params['rfr_id'] = $rfr_id->out();
-    $params['rfr.type'] = 'http://schemas.talis.com/tadc/v1/referrers/moodle/1';
-
-    $startDate = @$request->course_start ? $request->course_start : $COURSE->startdate;
-    $endDate = @$request->course_end ? $request->course_end : get_course_end($COURSE);
-
-    $size = @$request->expected_enrollment;
-    if(empty($size))
-    {
-        $context = context_course::instance($COURSE->id);
-        $size = count(get_enrolled_users($context));
-    }
-    $params = array_merge($params, array(
-        'rfe.code'=>tadc_format_course_id_for_tadc($COURSE->$course_code_field),
-        'rfe.name'=>$COURSE->fullname,
-        'rfe.sdate'=>date_format_string($startDate, '%Y-%m-%d'),
-        'rfe.edate'=>date_format_string($endDate, '%Y-%m-%d'),
-        'req.email'=>$USER->email,
-        'rfe.size'=>$size,
-        'req.name'=>$USER->firstname . ' ' . $USER->lastname
-    ));
-    if($params['rfe.size'] == 0) // or false, or null
-    {
-        $params['rfe.size'] = 1;
-    }
-
-    return $params;
-}
-
-function get_course_end($course)
+function tadc_get_course_end(stdClass $course)
 {
     global $DB;
     $context = context_course::instance($course->id);
@@ -109,33 +71,6 @@ function get_course_end($course)
 }
 
 /**
- * Generates a TADC request from a request resource, sends the request and returns the response from the TADC service
- *
- * @param stdClass $request
- * @return array
- */
-function tadc_submit_request_form($request)
-{
-    $tadc = get_config('tadc');
-    $params = tadc_build_request($request, $tadc->tenant_code);
-    $params['svc.trackback'] = $tadc->trackback_endpoint . '&itemUri=' . $request->id . '&api_key='.urlencode($tadc->api_key);
-    $params['svc.metadata'] = 'request';
-    if(@$request->referral_message)
-    {
-        $params['svc.refer'] = 'true';
-        $params['svc.message'] = $request->referral_message;
-    }
-    if(@$request->tadc_id)
-    {
-        $params['ctx_id'] = $tadc->tadc_location . $tadc->tenant_code . "/request/" . $request->tadc_id;
-    }
-    $client = new \mod_tadc_tadcclient($tadc->tadc_location . $tadc->tenant_code, $tadc->api_key, $tadc->tadc_shared_secret);
-    $response = $client->submit_request($params);
-    return json_decode($response, true);
-}
-
-
-/**
  * Generate an HTML citation for the digitisation request
  * @deprecated
  * @param stdClass $tadc
@@ -144,59 +79,64 @@ function tadc_submit_request_form($request)
 function tadc_generate_html_citation($tadc)
 {
     $requestMarkup = '';
-    if(@$tadc->section_creator && $tadc->section_creator != @$tadc->container_creator)
+    $sectionCreator = (isset($tadc->section_creator) ? $tadc->section_creator : null);
+    $containerCreator = (isset($tadc->container_creator) ? $tadc->container_creator : null);
+    $sectionTitle = (isset($tadc->section_title) ? $tadc->section_title : null);
+    $containerTitle = (isset($tadc->container_title) ? $tadc->container_title : null);
+    $type = (isset($tadc->type) ? $tadc->type : null);
+    if(!empty($sectionCreator) && $sectionCreator !== $containerCreator)
     {
         $requestMarkup .= $tadc->section_creator . ' ';
-    } elseif ((!@$tadc->section_creator && @$tadc->container_creator) || (@$tadc->section_creator && @$tadc->section_creator === @$tadc->container_creator))
+    } elseif (!empty($containerCreator))
     {
         $requestMarkup .= $tadc->container_creator . ' ';
     }
-    if(@$tadc->publication_date)
+    if(isset($tadc->publication_date) && !empty($tadc->publication_date))
     {
         $requestMarkup .= $tadc->publication_date . ' ';
     }
-    if(@$tadc->section_title)
+    if(!empty($sectionTitle))
     {
         $requestMarkup .= "'" . $tadc->section_title . "' ";
     }
-    if(@$tadc->type === 'book' && @$tadc->section_title && (@$tadc->container_title || @$tadc->container_identifier))
+    if($type === 'book' && !empty($sectionTitle) && ((!empty($containerTitle)) || (isset($tadc->container_identifier) && !empty($tadc->container_identifier))))
     {
         $requestMarkup .= 'in ';
     }
-    if(@$tadc->container_title)
+    if(!empty($containerTitle))
     {
         $requestMarkup .= '<em>' . $tadc->container_title . '</em>';
-        if(@$tadc->edition)
+        if(isset($tadc->edition) && !empty($tadc->edition))
         {
             $requestMarkup .= ', ' . $tadc->edition;
         }
         $requestMarkup .= ', ';
-    } elseif(@$tadc->container_identifier)
+    } elseif(isset($tadc->container_identifier) && !empty($tadc->container_identifier))
     {
         $requestMarkup .= '<em>' . preg_replace('/^(\w*:)/e', 'strtoupper("$0") . " "', $tadc->container_identifier) . '</em>, ';
     }
-    if(@$tadc->volume)
+    if(isset($tadc->volume) && !empty($tadc->volume))
     {
         $requestMarkup .= 'vol. ' . $tadc->volume . ', ';
     }
 
-    if(@$tadc->issue)
+    if(isset($tadc->issue) && !empty($tadc->issue))
     {
         $requestMarkup .= 'no. ' . $tadc->issue . ', ';
     }
 
-    if(@$tadc->section_creator && @$tadc->container_creator && (@$tadc->section_creator !== @$tadc->container_creator))
+    if(!empty($containerCreator) && ($sectionCreator !== $containerCreator))
     {
         $requestMarkup .= $tadc->container_creator . ' ';
     }
-    if(@$tadc->type === 'book' && @$tadc->publisher)
+    if($type && isset($tadc->publisher) && !empty($tadc->publisher))
     {
         $requestMarkup .= $tadc->publisher . ' ';
     }
-    if(@$tadc->start_page && @$tadc->end_page)
+    if(isset($tadc->start_page) && !empty($tadc->start_page) && isset($tadc->end_page))
     {
-        $requestMarkup .= 'pp. ' . $tadc->start_page . '-' . $tadc->end_page;
-    } elseif(@$tadc->start_page)
+        $requestMarkup .= 'pp. ' . $tadc->start_page. '-' . $tadc->end_page;
+    } elseif(isset($tadc->start_page) && !empty($tadc->start_page))
     {
         $requestMarkup .= 'p. ' . $tadc->start_page;
     }
@@ -204,7 +144,10 @@ function tadc_generate_html_citation($tadc)
     return chop(trim($requestMarkup),",") . '.';
 }
 
-
+/**
+ * Adds properties to a TADC object that replicates an LTI object so we can piggyback off of the existing LTI module
+ * @param stdClass $tadc
+ */
 function tadc_add_lti_properties(stdClass &$tadc)
 {
     $pluginSettings = get_config('tadc');
@@ -233,15 +176,26 @@ function tadc_add_lti_properties(stdClass &$tadc)
     $customLTIParams[] = 'course_code='.$baseCourseCode;
     $customLTIParams[] = 'course_name='.$course->fullname;
     $customLTIParams[] = 'course_start='.date('Y-m-d', $course->startdate);
+    $endDate = tadc_get_course_end($course);
+    if(!empty($endDate))
+    {
+        $customLTIParams[] = 'course_end='.date('Y-m-d', $endDate);
+    }
     $customLTIParams[] = 'source=' . TADC_SOURCE_URI;
     $customLTIParams[] = 'trackback=' . urlencode(new moodle_url('/mod/tadc/trackback.php', array('t'=>$tadc->id, 'api_key'=>$pluginSettings->api_key)));
     $tadc->resourcekey = $pluginSettings->api_key;
     $tadc->password = $pluginSettings->tadc_shared_secret;
     $tadc->instructorcustomparameters= implode("\n", $customLTIParams);
     $tadc->debuglaunch = false;
-    var_dump($tadc);
 }
 
+/**
+ * LTI launch URL for TADC follows a consistent pattern, based on the url/tenancy code
+ *
+ * @param $tadcHost
+ * @param $tadcTenantCode
+ * @return string
+ */
 function tadc_generate_launch_url($tadcHost, $tadcTenantCode)
 {
     if(substr($tadcHost, -1) !== "/")
@@ -251,9 +205,16 @@ function tadc_generate_launch_url($tadcHost, $tadcTenantCode)
     return $tadcHost . $tadcTenantCode . TADC_LTI_LAUNCH_PATH;
 }
 
+/**
+ * This is replicated for the LTI module, basically because we can't use the LTI return url from lti module, since these
+ * aren't *actually* lti resources (meaning stored in the lti table)
+ *
+ * @param stdClass $tadc
+ * @return string
+ */
 function tadc_do_lti_launch(stdClass $tadc)
 {
-    global $PAGE, $CFG;
+    global $CFG;
 
     if(!isset($tadc->resourcekey))
     {
@@ -352,31 +313,57 @@ function tadc_do_lti_launch(stdClass $tadc)
     echo $content;    
 }
 
-
-
+/**
+ * When given a course ID from Moodle, will return the TADC course ID (as specified in the module settings regex)
+ *
+ * @param string $courseId
+ * @return string
+ */
 function tadc_format_course_id_for_tadc($courseId)
 {
     $tadc_cfg = get_config('tadc');
-    if($tadc_cfg->course_code_format === '%COURSE_CODE%')
+    if(empty($tadc_cfg->course_code_regex))
     {
         return $courseId;
     }
-    foreach(explode('%COURSE_CODE%', $tadc_cfg->course_code_format) as $cruft)
+    preg_match('/' . $tadc_cfg->course_code_regex . '/', $courseId, $matches);
+    if(isset($matches[1]))
     {
-        $courseId = preg_replace("/" . $cruft . "/", "", $courseId);
+        return $matches[1];
     }
+
     return $courseId;
 }
 
+/**
+ * Finds all Moodle courses that match the regex (if defined) for the course id
+ *
+ * @param string $courseId
+ * @return array
+ */
 function tadc_courses_from_tadc_course_id($courseId)
 {
     global $DB;
     $tadc_cfg = get_config('tadc');
-    $courseId = str_replace('%COURSE_CODE%', $courseId, $tadc_cfg->course_code_format);
-    $rel = ($tadc_cfg->course_code_format === '%COURSE_CODE%' ? '=' : 'REGEXP');
+    if(!empty($tadc_cfg->course_code_regex))
+    {
+        $rel = 'REGEXP';
+        $replace = "/[^\\\]\([^\)]*[^\\]\)/";
+        $courseId = preg_replace($replace, $courseId, $tadc_cfg->course_code_regex);
+    } else {
+        $rel = "=";
+    }
+
     return $DB->get_records_select('course', $tadc_cfg->course_code_field . " $rel ?", array($courseId));
 }
 
+/**
+ * This generates the expected HMAC signature in the trackback
+ *
+ * @param $secret
+ * @param array $args
+ * @return string
+ */
 function tadc_verify_request_signature($secret, array $args = array())
 {
     // Generate our key to sign
@@ -412,76 +399,4 @@ function tadc_verify_request_signature($secret, array $args = array())
     }
     $key = urlencode(implode("&", $pairs));
     return hash_hmac('sha256', $key, $secret);
-}
-/**
- * A client class to interact with the TADC service
- *
- * Class mod_tadc_tadcclient
- */
-class mod_tadc_tadcclient {
-    private $_conn;
-    private $_base_url;
-    private $_key;
-    private $_secret;
-
-    /**
-     * @param string $tadc_location
-     * @param string $api_key
-     * @param string $shared_secret
-     */
-    public function __construct($tadc_location, $api_key, $shared_secret)
-    {
-        $this->_base_url = $tadc_location;
-        $this->_key = $api_key;
-        $this->_secret = $shared_secret;
-        $this->_conn = new \Curl(array('cache'=>false, 'debug'=>false));
-    }
-
-    /**
-     * Generates the api signature and POSTs a request to the TADC service
-     *
-     * @param $params
-     * @return bool
-     */
-    public function submit_request($params)
-    {
-        $params['res.signature'] = $this->generate_hash($params);
-        $params['res.api_key'] = $this->_key;
-        return $this->_conn->post($this->_base_url . '/request/', $this->generate_query_string($params), array('httpheader'=>array('Accept: application/json')));
-    }
-
-    /**
-     * Generates the API signature from the query vars.  This SHOULD NOT contain 'api_key' or 'signature'
-     *
-     * @param array $params
-     * @return string
-     */
-    private function generate_hash(array $params)
-    {
-        $values = array($this->_key);
-        $keys = array_keys($params);
-        sort($keys);
-        foreach($keys as $key)
-        {
-            $values[] = $params[$key];
-        }
-        return hash_hmac('sha256', implode('|',$values), $this->_secret);
-    }
-
-    /**
-     * OpenURL requests don't conform to PHP's built in query var generator, so we have to build the query string
-     * manually
-     *
-     * @param array $params
-     * @return string
-     */
-    private function generate_query_string(array $params)
-    {
-        $query = array();
-        foreach($params as $key=>$val)
-        {
-            array_push($query, $key . '=' . urlencode($val));
-        }
-        return implode('&', $query);
-    }
 }

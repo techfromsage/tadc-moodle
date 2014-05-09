@@ -167,6 +167,7 @@ function xmldb_tadc_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2014050201, 'tadc');
     }
 
+    // Migrate to LTI-based requests
     if($oldversion < 2014050202)
     {
         require_once ($CFG->dirroot.'/mod/tadc/locallib.php');

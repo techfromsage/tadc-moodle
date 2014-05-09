@@ -92,3 +92,5 @@ $string['QueuedForPackingMessage'] = 'The request is successful. The request has
 $string['notauthorizedfordownload'] = 'Sorry, you must be enrolled in a course associated with this digitisation to download it.';
 
 $string['return_to_course'] = 'Click <a href="{$a->link}" target="_top">here</a> to return to the course.';
+
+$string['notadc'] = "No digitisations requested for this course";

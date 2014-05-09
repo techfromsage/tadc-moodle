@@ -89,6 +89,7 @@ function tadc_update_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
     require_once(dirname(__FILE__).'/locallib.php');
     global $DB;
     $tadc->timemodified = time();
+    // We don't always get here from mod_form, so we might have an *actual* tadc instance
     if(((!isset($tadc->id)) || empty($tadc->id)) && isset($tadc->instance))
     {
         $tadc->id = $tadc->instance;
@@ -131,11 +132,7 @@ function tadc_delete_instance($id) {
  * @return stdClass|null
  */
 function tadc_user_outline($course, $user, $mod, $tadc) {
-
-    $return = new stdClass();
-    $return->time = 0;
-    $return->info = '';
-    return $return;
+    return null;
 }
 
 /**
@@ -223,7 +220,6 @@ function tadc_cm_info_dynamic(cm_info $cm) {
         $tadc = $DB->get_record('tadc', array('id'=>$cm->instance));
         $tadc->showdescription = $cm->showdescription;
         $tadc->cmid = $cm->id;
-        $tadc->context = $context;
         if($tadc->request_status !== 'LIVE')
         {
             if(!has_capability('mod/tadc:updateinstance', $context))
