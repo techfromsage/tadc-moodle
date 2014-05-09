@@ -4,7 +4,7 @@
 class mod_tadc_renderer extends plugin_renderer_base {
     /**
      * Display a TADC entry in various contexts
-     * 
+     *
      * @param stdClass $tadc
      * @return string
      */

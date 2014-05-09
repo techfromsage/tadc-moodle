@@ -125,11 +125,11 @@ function tadc_generate_html_citation($tadc)
         $requestMarkup .= 'no. ' . $tadc->issue . ', ';
     }
 
-    if(!empty($containerCreator) && ($sectionCreator !== $containerCreator))
+    if(!empty($containerCreator) && !empty($sectionCreator) && ($sectionCreator !== $containerCreator))
     {
         $requestMarkup .= $tadc->container_creator . ' ';
     }
-    if($type && isset($tadc->publisher) && !empty($tadc->publisher))
+    if($type === 'book' && isset($tadc->publisher) && !empty($tadc->publisher))
     {
         $requestMarkup .= $tadc->publisher . ' ';
     }
@@ -322,16 +322,14 @@ function tadc_do_lti_launch(stdClass $tadc)
 function tadc_format_course_id_for_tadc($courseId)
 {
     $tadc_cfg = get_config('tadc');
-    if(empty($tadc_cfg->course_code_regex))
+    if($tadc_cfg->course_code_regex === '%COURSE_CODE%')
     {
         return $courseId;
     }
-    preg_match('/' . $tadc_cfg->course_code_regex . '/', $courseId, $matches);
-    if(isset($matches[1]))
+    foreach(explode('%COURSE_CODE%', $tadc_cfg->course_code_regex) as $cruft)
     {
-        return $matches[1];
+        $courseId = preg_replace("/" . $cruft . "/", "", $courseId);
     }
-
     return $courseId;
 }
 
@@ -345,15 +343,8 @@ function tadc_courses_from_tadc_course_id($courseId)
 {
     global $DB;
     $tadc_cfg = get_config('tadc');
-    if(!empty($tadc_cfg->course_code_regex))
-    {
-        $rel = 'REGEXP';
-        $replace = "/[^\\\]\([^\)]*[^\\]\)/";
-        $courseId = preg_replace($replace, $courseId, $tadc_cfg->course_code_regex);
-    } else {
-        $rel = "=";
-    }
-
+    $courseId = str_replace('%COURSE_CODE%', $courseId, $tadc_cfg->course_code_regex);
+    $rel = ($tadc_cfg->course_code_regex === '%COURSE_CODE%' ? '=' : 'REGEXP');
     return $DB->get_records_select('course', $tadc_cfg->course_code_field . " $rel ?", array($courseId));
 }
 

@@ -51,6 +51,7 @@ function tadc_supports($feature) {
                 return MOD_ARCHETYPE_SYSTEM;
             }
         case FEATURE_BACKUP_MOODLE2:    return true;
+        case FEATURE_GRADE_OUTCOMES:    return false;
         default:                        return null;
     }
 }

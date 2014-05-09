@@ -38,7 +38,7 @@ $string['config_allow_requests_desc'] = 'Requests can be sent to TADC from Moodl
 $string['config_allow_downloads'] = 'Allow TADC downloads from Moodle';
 $string['config_allow_downloads_desc'] = 'Moodle can be used to specify enrollment in a course, and the bundle player will point the user to Moodle to download the document';
 $string['course_code_regex'] = 'Course ID regex';
-$string['course_code_regex_desc'] = 'Since course IDs may be stored differently in Moodle than TADC, this setting lets you configure how to translate between the two: it accepts regexes, enclose the part of the string that matches with how the course code appears in TADC in parentheses.  Example: `^([A-Za-z0-9]{6})_[0-9]{6}$`';
+$string['course_code_regex_desc'] = 'Since course IDs may be stored differently in Moodle than TADC, this setting lets you configure how to translate between the two: it accepts regexes, but must contain "%COURSE_CODE%" as the part of the string that matches with how the course code appears in TADC.  Example: `^20\\[0-9\]{2}-\\[0-9\]{2}_%COURSE_CODE%\\-(FOO|BAR|BAZ)$`';
 
 $string['server_details_heading'] = 'Server details';
 $string['server_details_desc'] = 'Host name and tenant code used for Talis Aspire Digitised Content';
