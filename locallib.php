@@ -67,6 +67,10 @@ function tadc_get_course_end(stdClass $course)
             $courseLength = $course->startdate + $courseLength;
         }
     }
+    if($courseLength === $course->startdate)
+    {
+        return null;
+    }
     return $courseLength;
 }
 
