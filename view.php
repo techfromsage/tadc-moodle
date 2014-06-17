@@ -56,14 +56,13 @@ if($tadc->request_status === 'REJECTED' && $tadc->reason_code === 'InvalidReques
     redirect(new moodle_url('/course/modedit.php', array('update'=>$cm->id)));
 }
 
-$title = tadc_build_title_string($tadc);
-add_to_log($course->id, 'tadc', 'view', "view.php?id={$cm->id}", $title, $cm->id);
+add_to_log($course->id, 'tadc', 'view', "view.php?id={$cm->id}", $tadc->name, $cm->id);
 
 /// Print the page header
 
 $PAGE->set_url('/mod/tadc/view.php', array('id' => $cm->id));
 
-$PAGE->set_title(format_string($title));
+$PAGE->set_title(format_string($tadc->name));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
 
@@ -72,7 +71,8 @@ echo $OUTPUT->header();
 // Output the citation as HTML
 $requestMarkup = '<div class="tadc-request-metadata">';
 
-$requestMarkup .= tadc_generate_html_citation($tadc);
+// TODO: make sure this marks up properly
+$requestMarkup .= $tadc->citation;
 
 $requestMarkup .= '</div>';
 
@@ -91,7 +91,7 @@ if($tadc->request_status === 'LIVE')
             $requestMarkup .= '<div class="yui3-u-1-2 tadc-download-link"><a class="button" href="' . new moodle_url('/mod/tadc/download.php', array('id'=>$cm->id)) . '">Print/Download</a></div>';
         }
         $requestMarkup .= '</div><div class="yui3-g">';
-        $requestMarkup .= '<div class="yui3-u-1"><iframe class="tadc-bundle-viewer" id="tadc-bundle-viewer" width="100%" height="500" frameborder="0" src="' . $tadc_cfg->tadc_location . $tadc_cfg->tenant_code . '/bundles/' . $tadc->bundle_url . '?api_key='. $tadc_cfg->api_key .'&signature=' . $key . '&userId=' . $USER->username . '"></iframe></div>';
+        $requestMarkup .= '<div class="yui3-u-1"><iframe class="tadc-bundle-viewer" id="tadc-bundle-viewer" width="100%" height="500" frameborder="0" src="' . new moodle_url('/mod/tadc/launch.php', array('id'=>$cm->id)) . '"></iframe></div>';
         $requestMarkup .= '</div>';
         $PAGE->requires->js_init_call('M.mod_tadc.resize_iframe');
 
@@ -107,94 +107,46 @@ if($tadc->request_status === 'LIVE')
     }
     $requestMarkup .= '</dl></div></div>';
     $requestMarkup .= '<div class="tadc-reason-code-message"><p>' . get_string($tadc->reason_code . 'Message', 'tadc'). '</p></div>';
+} else {
+    // If there is no request_status, the user hasn't successfully submitted a request, yet
+    // Request the launch content with an iframe tag instead of the standard moodle LTI object tag
+    echo '<iframe id="contentframe" height="600px" width="100%" type="text/html" src="launch.php?id='.$cm->id.'" frameborder="0"></iframe>';
 
-    // If it's rejected, give the manager options to either submit alternatives or a referral request
-    if($tadc->request_status === 'REJECTED' && has_capability('mod/tadc:updateinstance', $context))
-    {
-        $requestMarkup .= '<div class="tadc-rejection-options">';
-        switch($tadc->reason_code)
-        {
-            // For requests with existing electronic copies, give the option to turn it into a URL
-            case 'ElectronicCopyAvailable':
-                $tadc_data = json_decode($tadc->other_response_data, true);
+    //Output script to make the object tag be as large as possible
+    $resize = '
+        <script type="text/javascript">
+        //<![CDATA[
+            YUI().use("yui2-dom", function(Y) {
+                //Take scrollbars off the outer document to prevent double scroll bar effect
+                document.body.style.overflow = "hidden";
 
-                foreach($tadc_data['url'] as $url)
-                {
-                    $requestMarkup .= '<div class="yui3-g tadc-alt-url-option">';
-                    $requestMarkup .= '<div class="yui3-u-1-2"><a href="' . $url . '" target="_blank">Link to resource</a></div>';
-                    $requestMarkup .= '<div class="yui3-u-1-2"><form method="POST" action="/course/modedit.php">';
-                    $requestMarkup .= '<input type="hidden" name="add" value="url" />';
-                    $requestMarkup .= '<input type="hidden" name="update" value="0" />';
-                    $requestMarkup .= '<input type="hidden" name="modulename" value="url" />';
-                    $requestMarkup .= '<input type="hidden" name="instance" value="" />';
-                    $requestMarkup .= '<input type="hidden" name="course" value="' . $course->id . '" />';
-                    $requestMarkup .= '<input type="hidden" name="name" value="' . tadc_build_title_string($tadc) . '" />';
-                    $requestMarkup .= '<input type="hidden" name="introeditor[text]" value="' . tadc_generate_html_citation($tadc) . '" />';
-                    $requestMarkup .= '<input type="hidden" name="introeditor[format]" value="1" />';
-                    $requestMarkup .= '<input type="hidden" name="introeditor[itemid]" value="' . file_get_unused_draft_itemid() .'" />';
-                    $requestMarkup .= '<input type="hidden" name="section" value="' . $DB->get_field('course_sections', 'section', array('id'=>$cm->section)). '" />';
-                    $requestMarkup .= '<input type="hidden" name="sesskey" value="' . sesskey() . '" />';
-                    $requestMarkup .= '<input type="hidden" name="externalurl" value="' . $url . '" />';
-                    $requestMarkup .= '<input type="hidden" name="_qf__mod_url_mod_form" value="1" />';
-                    $requestMarkup .= '<input type="hidden" name="cmidnumber" value="" />';
-                    $requestMarkup .= '<input type="submit" value="Create URL resource and add to course" />';
-                    $requestMarkup .= '</form>';
-                    $requestMarkup .= '</div></div>';
-                }
-                break;
-            case 'NewerEditionAvailable':
-                $tadc_data = json_decode($tadc->other_response_data, true);
-                if(@$tadc_data['locallyHeldEditionIds'])
-                {
-                    foreach($tadc_data['locallyHeldEditionIds'] as $localId)
-                    {
-                        $requestMarkup .= tadc_generate_resubmit_form_from_tadc_edition($cm, $tadc_data['editions'][$localId]);
+                var dom = Y.YUI2.util.Dom;
+                var frame = document.getElementById("contentframe");
+
+                var padding = 15; //The bottom of the iframe wasn\'t visible on some themes. Probably because of border widths, etc.
+
+                var lastHeight;
+
+                var resize = function(){
+                    var viewportHeight = dom.getViewportHeight();
+
+                    if(lastHeight !== Math.min(dom.getDocumentHeight(), viewportHeight)){
+
+                        frame.style.height = viewportHeight - dom.getY(frame) - padding + "px";
+
+                        lastHeight = Math.min(dom.getDocumentHeight(), dom.getViewportHeight());
                     }
-                }
-                break;
-            case 'NotHeldByLibrary':
-                $tadc_data = json_decode($tadc->other_response_data, true);
-                if(@$tadc_data['alternate_editions'])
-                {
-                    $requestMarkup .= '<div class="yui3-g"><div class="yui3-u-1">' . get_string('alternate_editions_mesg', 'tadc') . '</div></div>';
-                    foreach(array_keys($tadc_data['alternate_editions']) as $format)
-                    {
-                        $requestMarkup .= '<div class="yui3-g"><div class="yui3-u-1 tadc-alt-edition-format-header">' . ucfirst($format) . '</div></div>';
-                        foreach($tadc_data['alternate_editions'][$format] as $edition)
-                        {
-                            $requestMarkup .= tadc_generate_resubmit_form_from_tadc_edition($cm, $edition);
-                        }
-                    }
-                }
-                break;
+                };
 
-            case 'RequestNotPermissibleUnderRROLicence':
-                $tadc_data = json_decode($tadc->other_response_data, true);
-                if(@$tadc_data['alternate_editions'])
-                {
-                    $requestMarkup .= '<div class="yui3-g"><div class="yui3-u-1">' . get_string('alternate_editions_mesg', 'tadc') . '</div></div>';
-                    foreach(array_keys($tadc_data['alternate_editions']) as $format)
-                    {
-                        $requestMarkup .= '<div class="yui3-g"><div class="yui3-u-1 tadc-alt-edition-format-header">' . ucfirst($format) . '</div></div>';
-                        foreach($tadc_data['alternate_editions'][$format] as $edition)
-                        {
-                            $requestMarkup .= tadc_generate_resubmit_form_from_tadc_edition($cm, $edition);
-                        }
-                    }
-                }
-                break;
-        }
-        $requestMarkup .= '</div>';
-        $requestMarkup .= '<div class="tadc-referral-form"><form method="post" action="refer.php">';
-        $requestMarkup .= '<h3>Proceed with request anyway</h3>';
-        $requestMarkup .= '<input type="hidden" name="id" value="'. $cm->id . '" />';
-        $requestMarkup .= '<input type="hidden" name="sesskey" value="'.sesskey().'" />';
-        $requestMarkup .= '<label for="referralMessage">Reason</label><br />';
+                resize();
 
-        $requestMarkup .= '<textarea id="referralMessage" name="referralMessage" rows="2" cols="50"></textarea>';
-        $requestMarkup .= '<p><input type="submit" value="Submit referral request" /></p>';
-        $requestMarkup .= '</form></div>';
-    }
+                setInterval(resize, 250);
+            });
+        //]]
+        </script>
+';
+
+    echo $resize;
 }
 echo $OUTPUT->box($requestMarkup);
 // Finish the page

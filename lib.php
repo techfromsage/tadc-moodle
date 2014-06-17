@@ -40,7 +40,8 @@ defined('MOODLE_INTERNAL') || die();
 function tadc_supports($feature) {
     $tadc_cfg = get_config('tadc');
     switch($feature) {
-        case FEATURE_MOD_INTRO:         return false;
+        case FEATURE_MOD_INTRO:         return true;
+        case FEATURE_SHOW_DESCRIPTION:        return true;
         case FEATURE_MOD_ARCHETYPE:
             if($tadc_cfg->allow_requests)
             {
@@ -50,6 +51,7 @@ function tadc_supports($feature) {
                 return MOD_ARCHETYPE_SYSTEM;
             }
         case FEATURE_BACKUP_MOODLE2:    return true;
+        case FEATURE_GRADE_OUTCOMES:    return false;
         default:                        return null;
     }
 }
@@ -69,13 +71,7 @@ function tadc_supports($feature) {
 function tadc_add_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
     require_once(dirname(__FILE__).'/locallib.php');
     global $DB;
-
-    tadc_form_identifiers_to_resource_identifiers($tadc);
     $tadc->id = $DB->insert_record('tadc', $tadc);
-    $response = tadc_submit_request_form($tadc);
-    tadc_update_resource_with_tadc_response($tadc, $response);
-    $tadc->name = tadc_build_title_string($tadc);
-    $DB->update_record('tadc', $tadc);
     return $tadc->id;
 }
 
@@ -94,43 +90,12 @@ function tadc_update_instance(stdClass $tadc, mod_tadc_mod_form $mform = null) {
     require_once(dirname(__FILE__).'/locallib.php');
     global $DB;
     $tadc->timemodified = time();
-    $tadc->id = $tadc->instance;
-
-    # You may have to add extra stuff in here #
-    tadc_form_identifiers_to_resource_identifiers($tadc);
-    $instance = $DB->get_record('tadc', array('id'=>$tadc->instance));
-    if((!isset($instance->request_status) || $instance->request_status === 'REJECTED') && ($mform && $mform->get_data('resubmit')) || @$tadc->resubmit)
+    // We don't always get here from mod_form, so we might have an *actual* tadc instance
+    if(((!isset($tadc->id)) || empty($tadc->id)) && isset($tadc->instance))
     {
-        $tadc->request_status = null;
-        $tadc->status_message = null;
-        $tadc->reason_code = null;
-        $tadc->other_response_data = null;
-        $DB->update_record('tadc', $tadc);
-        $resource = $DB->get_record('tadc', array('id'=>$tadc->id));
-        if(@$tadc->referral_message)
-        {
-            $resource->referral_message = $tadc->referral_message;
-        }
-        if(@$tadc->course_start)
-        {
-            $resource->course_start = $tadc->course_start;
-        }
-        if(@$tadc->course_end)
-        {
-            $resource->course_end = $tadc->course_end;
-        }
-        if(@$tadc->expected_enrollment)
-        {
-            $resource->expected_enrollment = $tadc->expected_enrollment;
-        }
-        $response = tadc_submit_request_form($resource);
-        tadc_update_resource_with_tadc_response($resource, $response);
-        $resource->name = tadc_build_title_string($resource);
-        return $DB->update_record('tadc', $resource);
-    } else {
-        $tadc->name = tadc_build_title_string($tadc);
-        return $DB->update_record('tadc', $tadc);
+        $tadc->id = $tadc->instance;
     }
+    return $DB->update_record('tadc', $tadc);
 
 }
 
@@ -168,11 +133,7 @@ function tadc_delete_instance($id) {
  * @return stdClass|null
  */
 function tadc_user_outline($course, $user, $mod, $tadc) {
-
-    $return = new stdClass();
-    $return->time = 0;
-    $return->info = '';
-    return $return;
+    return null;
 }
 
 /**
@@ -253,11 +214,13 @@ function tadc_get_extra_capabilities() {
  * @param cm_info $cm
  */
 function tadc_cm_info_dynamic(cm_info $cm) {
-    global $DB;
+    global $DB, $PAGE;
     $context = context_module::instance($cm->id);
     if($cm->modname === 'tadc')
     {
         $tadc = $DB->get_record('tadc', array('id'=>$cm->instance));
+        $tadc->showdescription = $cm->showdescription;
+        $tadc->cmid = $cm->id;
         if($tadc->request_status !== 'LIVE')
         {
             if(!has_capability('mod/tadc:updateinstance', $context))
@@ -265,5 +228,38 @@ function tadc_cm_info_dynamic(cm_info $cm) {
                 $cm->set_user_visible(false);
             }
         }
+        $renderer = $PAGE->get_renderer('mod_tadc');
+        $cm->set_content($renderer->display_tadc($tadc));
     }
+}
+
+
+/**
+ * Given a coursemodule object, this function returns the extra
+ * information needed to print this activity in various places.
+ *
+ * If folder needs to be displayed inline we store additional information
+ * in customdata, so functions {@link folder_cm_info_dynamic()} and
+ * {@link folder_cm_info_view()} do not need to do DB queries
+ *
+ * @param cm_info $cm
+ * @return cached_cm_info info
+ */
+function tadc_get_coursemodule_info($cm) {
+    global $DB;
+    error_log('tadc_get_coursemodule_info');
+    if (!($tadc = $DB->get_record('tadc', array('id' => $cm->instance),
+        'id, name, citation, citationformat, request_status, reason_code, intro, introformat'))) {
+        return NULL;
+    }
+
+    $cminfo = new cached_cm_info();
+    $cminfo->name = $tadc->name;
+    $cminfo->intro = $tadc->intro;
+    $cminfo->introformat = $tadc->introformat;
+    $cminfo->citation = $tadc->citation;
+    $cminfo->citationformat = $tadc->citationformat;
+    $cminfo->request_status = $tadc->request_status;
+    $cminfo->reason_code = $tadc->reason_code;
+    return $cminfo;
 }

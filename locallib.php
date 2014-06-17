@@ -28,129 +28,16 @@
 defined('MOODLE_INTERNAL') || die();
 require_once(dirname(__FILE__)."/lib.php");
 
-$_tadc_client = null;
+define('TADC_LTI_LAUNCH_PATH', '/lti/launch');
+define('TADC_SOURCE_URI', 'http://schemas.talis.com/tadc/v1/referrers/moodle/2');
+
 /**
- * Maps a TADC digisation request resource (record) into an OpenURL array
+ * Attempts to determine the rough end date for the course
  *
- * @param $resource
- * @return array
+ * @param stdClass $course
+ * @return bool|int
  */
-function tadc_resource_to_referent($resource)
-{
-    $params = array();
-    if(@$resource->section_title) { $params['rft.atitle'] = $resource->section_title; }
-    if($resource->type == 'book')
-    {
-        $params['rft_val_fmt'] = 'info:ofi/fmt:kev:mtx:book';
-        if(@$resource->container_title)
-        {
-            $params['rft.btitle'] = $resource->container_title;
-        }
-    } else {
-        $params['rft_val_fmt'] = 'info:ofi/fmt:kev:mtx:journal';
-        if(@$resource->container_title)
-        {
-            $params['rft.jtitle'] = $resource->container_title;
-        }
-    }
-
-    if(@$resource->container_identifier)
-    {
-        list($idType, $id) = explode(":", $resource->container_identifier, 2);
-        $params['rft.' . strtolower($idType)] = $id;
-    }
-    if(@$resource->document_identifier)
-    {
-        list($idType, $id) = explode(":", $resource->document_identifier, 2);
-        $params['rft.' . strtolower($idType)] = $id;
-        $params['rft_id'] = 'info:' . $idType . '/' . $id;
-    }
-    $creators = array();
-    if(@$resource->section_creator)
-    {
-        $creators[] = $resource->section_creator;
-    }
-    if(@$resource->container_creator)
-    {
-        $creators[] = $resource->container_creator;
-    }
-    if(!empty($creators))
-    {
-        $params['rft.au'] = implode("; ", $creators);
-    }
-    if(@$resource->start_page)
-    {
-        $params['rft.spage'] = $resource->start_page;
-    }
-    if(@$resource->end_page)
-    {
-        $params['rft.epage'] = $resource->end_page;
-    }
-    if(@$resource->publication_date)
-    {
-        $params['rft.date'] = $resource->publication_date;
-    }
-    if(@$resource->publisher)
-    {
-        $params['rft.pub'] = $resource->publisher;
-    }
-    if(@$resource->volume)
-    {
-        $params['rft.volume'] = $resource->volume;
-    }
-    if(@$resource->issue)
-    {
-        $params['rft.issue'] = $resource->issue;
-    }
-    if(@$resource->needed_by)
-    {
-        $params['svc.neededby'] = date_format_string($resource->needed_by, '%Y-%m-%d');
-    }
-    return $params;
-}
-
-/**
- * @param stdClass $request
- * @param string $tenant
- * @return array
- */
-function tadc_build_request($request)
-{
-    global $COURSE, $USER;
-    $course_code_field = get_config('tadc', 'course_code_field');
-    $ts = new DateTime();
-    $params = array_merge(array('url_ver'=>'Z39.88-2004', 'url_ctx_fmt'=>'info:ofi/fmt:kev:mtx:ctx', 'url_tim'=>$ts->format(DateTime::ISO8601)), tadc_resource_to_referent($request));
-    $rfr_id = new moodle_url('/mod/tadc/view.php', array('t'=>$request->id));
-    $params['rfr_id'] = $rfr_id->out();
-    $params['rfr.type'] = 'http://schemas.talis.com/tadc/v1/referrers/moodle/1';
-
-    $startDate = @$request->course_start ? $request->course_start : $COURSE->startdate;
-    $endDate = @$request->course_end ? $request->course_end : get_course_end($COURSE);
-
-    $size = @$request->expected_enrollment;
-    if(empty($size))
-    {
-        $context = context_course::instance($COURSE->id);
-        $size = count(get_enrolled_users($context));
-    }
-    $params = array_merge($params, array(
-        'rfe.code'=>tadc_format_course_id_for_tadc($COURSE->$course_code_field),
-        'rfe.name'=>$COURSE->fullname,
-        'rfe.sdate'=>date_format_string($startDate, '%Y-%m-%d'),
-        'rfe.edate'=>date_format_string($endDate, '%Y-%m-%d'),
-        'req.email'=>$USER->email,
-        'rfe.size'=>$size,
-        'req.name'=>$USER->firstname . ' ' . $USER->lastname
-    ));
-    if($params['rfe.size'] == 0) // or false, or null
-    {
-        $params['rfe.size'] = 1;
-    }
-
-    return $params;
-}
-
-function get_course_end($course)
+function tadc_get_course_end(stdClass $course)
 {
     global $DB;
     $context = context_course::instance($course->id);
@@ -180,131 +67,80 @@ function get_course_end($course)
             $courseLength = $course->startdate + $courseLength;
         }
     }
+    if($courseLength === $course->startdate)
+    {
+        return null;
+    }
     return $courseLength;
 }
 
 /**
- * Generates a TADC request from a request resource, sends the request and returns the response from the TADC service
- *
- * @param stdClass $request
- * @return array
- */
-function tadc_submit_request_form($request)
-{
-    $tadc = get_config('tadc');
-    $params = tadc_build_request($request, $tadc->tenant_code);
-    $params['svc.trackback'] = $tadc->trackback_endpoint . '&itemUri=' . $request->id . '&api_key='.urlencode($tadc->api_key);
-    $params['svc.metadata'] = 'request';
-    if(@$request->referral_message)
-    {
-        $params['svc.refer'] = 'true';
-        $params['svc.message'] = $request->referral_message;
-    }
-    if(@$request->tadc_id)
-    {
-        $params['ctx_id'] = $tadc->tadc_location . $tadc->tenant_code . "/request/" . $request->tadc_id;
-    }
-    $client = new \mod_tadc_tadcclient($tadc->tadc_location . $tadc->tenant_code, $tadc->api_key, $tadc->tadc_shared_secret);
-    $response = $client->submit_request($params);
-    return json_decode($response, true);
-}
-
-/**
- * Builds the 'name' property for a digitisation request
- *
- * @param stdClass $tadc
- * @return string
- */
-function tadc_build_title_string($tadc)
-{
-    $title = '';
-    if(@$tadc->section_title)
-    {
-        $title .= $tadc->section_title;
-    }
-    if(@$tadc->section_title && (@$tadc->container_title || @$tadc->container_identifier))
-    {
-        $title .= ' from ';
-    }
-    if(@$tadc->container_title)
-    {
-        $title .= $tadc->container_title . ', ';
-    } elseif(@$tadc->container_identifier)
-    {
-        $title .= preg_replace('/^(\w*:)/e', 'strtoupper("$0") . " "', $tadc->container_identifier) . ', ';
-    }
-    if(@$tadc->start_page && @$tadc->end_page)
-    {
-        $title .= 'pp. ' . $tadc->start_page . '-' . $tadc->end_page;
-    } elseif(@$tadc->start_page)
-    {
-        $title .= 'p. ' . $tadc->start_page;
-    }
-    return chop(trim($title),",");
-}
-
-/**
  * Generate an HTML citation for the digitisation request
- *
+ * @deprecated
  * @param stdClass $tadc
  * @return string
  */
 function tadc_generate_html_citation($tadc)
 {
     $requestMarkup = '';
-    if(@$tadc->section_creator && $tadc->section_creator != @$tadc->container_creator)
+    $sectionCreator = (isset($tadc->section_creator) ? $tadc->section_creator : null);
+    $containerCreator = (isset($tadc->container_creator) ? $tadc->container_creator : null);
+    $sectionTitle = (isset($tadc->section_title) ? $tadc->section_title : null);
+    $containerTitle = (isset($tadc->container_title) ? $tadc->container_title : null);
+    $type = (isset($tadc->type) ? $tadc->type : null);
+    if(!empty($sectionCreator) && $sectionCreator !== $containerCreator)
     {
         $requestMarkup .= $tadc->section_creator . ' ';
-    } elseif ((!@$tadc->section_creator && @$tadc->container_creator) || (@$tadc->section_creator && @$tadc->section_creator === @$tadc->container_creator))
+    } elseif (!empty($containerCreator))
     {
         $requestMarkup .= $tadc->container_creator . ' ';
     }
-    if(@$tadc->publication_date)
+    if(isset($tadc->publication_date) && !empty($tadc->publication_date))
     {
         $requestMarkup .= $tadc->publication_date . ' ';
     }
-    if(@$tadc->section_title)
+    if(!empty($sectionTitle))
     {
         $requestMarkup .= "'" . $tadc->section_title . "' ";
     }
-    if(@$tadc->type === 'book' && @$tadc->section_title && (@$tadc->container_title || @$tadc->container_identifier))
+    if($type === 'book' && !empty($sectionTitle) && ((!empty($containerTitle)) || (isset($tadc->container_identifier) && !empty($tadc->container_identifier))))
     {
         $requestMarkup .= 'in ';
     }
-    if(@$tadc->container_title)
+    if(!empty($containerTitle))
     {
         $requestMarkup .= '<em>' . $tadc->container_title . '</em>';
-        if(@$tadc->edition)
+        if(isset($tadc->edition) && !empty($tadc->edition))
         {
             $requestMarkup .= ', ' . $tadc->edition;
         }
         $requestMarkup .= ', ';
-    } elseif(@$tadc->container_identifier)
+    } elseif(isset($tadc->container_identifier) && !empty($tadc->container_identifier))
     {
         $requestMarkup .= '<em>' . preg_replace('/^(\w*:)/e', 'strtoupper("$0") . " "', $tadc->container_identifier) . '</em>, ';
     }
-    if(@$tadc->volume)
+    if(isset($tadc->volume) && !empty($tadc->volume))
     {
         $requestMarkup .= 'vol. ' . $tadc->volume . ', ';
     }
 
-    if(@$tadc->issue)
+    if(isset($tadc->issue) && !empty($tadc->issue))
     {
         $requestMarkup .= 'no. ' . $tadc->issue . ', ';
     }
 
-    if(@$tadc->section_creator && @$tadc->container_creator && (@$tadc->section_creator !== @$tadc->container_creator))
+    if(!empty($containerCreator) && !empty($sectionCreator) && ($sectionCreator !== $containerCreator))
     {
         $requestMarkup .= $tadc->container_creator . ' ';
     }
-    if(@$tadc->type === 'book' && @$tadc->publisher)
+    if($type === 'book' && isset($tadc->publisher) && !empty($tadc->publisher))
     {
         $requestMarkup .= $tadc->publisher . ' ';
     }
-    if(@$tadc->start_page && @$tadc->end_page)
+    if(isset($tadc->start_page) && !empty($tadc->start_page) && isset($tadc->end_page))
     {
-        $requestMarkup .= 'pp. ' . $tadc->start_page . '-' . $tadc->end_page;
-    } elseif(@$tadc->start_page)
+        $requestMarkup .= 'pp. ' . $tadc->start_page. '-' . $tadc->end_page;
+    } elseif(isset($tadc->start_page) && !empty($tadc->start_page))
     {
         $requestMarkup .= 'p. ' . $tadc->start_page;
     }
@@ -313,312 +149,249 @@ function tadc_generate_html_citation($tadc)
 }
 
 /**
- * Take a TADC submission response and applies the returned metadata to the digitisation request resource
- *
- * @param stdClass $tadc
- * @param array $md
- */
-function tadc_set_resource_values_from_tadc_metadata(stdClass &$tadc, array $md)
-{
-    if(@$md['type'] === 'Article' && !@$tadc->type)
-    {
-        $tadc->type = 'journal';
-    }
-    if(@$md['type'] !== 'Article' && !@$tadc->type)
-    {
-        $tadc->type = 'book';
-    }
-    if(@$md['editionTitle'] && !@$tadc->container_title)
-    {
-        $tadc->container_title = $md['editionTitle'];
-    }
-    if(@$md['editionStatement'] && !@$tadc->edition)
-    {
-        $tadc->edition = $md['editionStatement'];
-    }
-    if(@$md['editionCreators'] && !empty($md['editionCreators']) && !@$tadc->container_creator)
-    {
-        $tadc->container_creator = implode('; ', $md['editionCreators']);
-    }
-    if($tadc->type === 'book' && @$md['isbn13'] && @!empty($md['isbn13']) && !@$tadc->container_identifier)
-    {
-        $tadc->container_identifier = 'isbn:' . $md['isbn13'][0];
-    }
-    if($tadc->type === 'journal' && @$md['issn'] && !@$tadc->container_identifier)
-    {
-        $tadc->container_identifier = 'issn:' . $md['issn'];
-    }
-    if(@$md['publisherStrings'] && !empty($md['publisherStrings']) && !@$tadc->publisher)
-    {
-        $tadc->publisher = $md['publisherStrings'][0];
-    }
-    if(@$md['publisher'] && !@$tadc->publisher)
-    {
-        $tadc->publisher = $md['publisher'];
-    }
-    if(@$md['editionDate'] && !@$tadc->publication_date)
-    {
-        $tadc->publication_date = $md['editionDate'];
-    }
-    if(@$md['sectionTitle'] && !@$tadc->section_title)
-    {
-        $tadc->section_title = $md['sectionTitle'];
-    }
-    if(@$md['sectionCreators'] && !empty($md['sectionCreators']) && !@$tadc->section_creator)
-    {
-        $tadc->section_creator = implode("; ", $md['sectionCreators']);
-    }
-    if(@$md['startPage'] && !@$tadc->start_page)
-    {
-        $tadc->start_page = $md['startPage'];
-    }
-    if(@$md['endPage'] && !@$tadc->end_page)
-    {
-        $tadc->end_page = $md['endPage'];
-    }
-    if(@$md['doi'] && !@$tadc->document_identifier)
-    {
-        $tadc->document_identifier = 'doi:' . $md['doi'];
-    } elseif(@$md['pmid'] && !@$tadc->document_identifier)
-    {
-        $tadc->document_identifier = 'pmid:' . $md['pmid'];
-    }
-    if(@$md['volume'] && !$tadc->volume)
-    {
-        $tadc->volume = $md['volume'];
-    }
-    if(@$md['issue'] && !$tadc->issue)
-    {
-        $tadc->issue = $md['issue'];
-    }
-}
-
-/**
- * Take a TADC submission response edition block and applies the returned metadata to the digitisation request resource
- *
- * @param stdClass $tadc
- * @param array $md
- */
-function tadc_set_resource_values_from_tadc_edition(stdClass &$tadc, array $md)
-{
-    // If we're working with an 'edition', it has to be a book it's referring to
-    if(!@$tadc->type) { $tadc->type = 'book'; }
-    if(@$md['title'] && !@$tadc->container_title)
-    {
-        $tadc->container_title = $md['title'];
-    }
-    if(@$md['creators'] && !empty($md['creators']) && !@$tadc->container_creator)
-    {
-        $tadc->container_creator = implode('; ', $md['creators']);
-    }
-    if(@$md['identifiers']['isbn13'] && @!empty($md['identifiers']['isbn13']) && !@$tadc->container_identifier)
-    {
-        $tadc->container_identifier = 'isbn:' . $md['identifiers']['isbn13'][0];
-    }
-    if(@$md['publisherStrings'] && !empty($md['publisherStrings']) && !@$tadc->publisher)
-    {
-        $tadc->publisher = $md['publisherStrings'][0];
-    }
-    if(@$md['editionStatement'] && !@$tadc->edition)
-    {
-        $tadc->edition = $md['editionStatement'];
-    }
-    if(@$md['date'] && !@$tadc->publication_date)
-    {
-        $tadc->publication_date = $md['date'];
-    }
-}
-
-/**
- * Generates an empty TADC object
- *
- * @return stdClass
- */
-function tadc_create_new_tadc()
-{
-    $tadc = new stdClass();
-    $tadc->id = null;
-    $tadc->course = null;
-    $tadc->type = null;
-    $tadc->section_title = null;
-    $tadc->section_creator = null;
-    $tadc->start_page = null;
-    $tadc->end_page = null;
-    $tadc->container_title = null;
-    $tadc->document_identifier = null;
-    $tadc->container_identifier = null;
-    $tadc->publication_date = null;
-    $tadc->volume = null;
-    $tadc->issue = null;
-    $tadc->publisher = null;
-    $tadc->needed_by = null;
-    $tadc->tadc_id = null;
-    $tadc->status_message = null;
-    $tadc->request_status = null;
-    $tadc->bundle_url = null;
-    $tadc->name = null;
-    $tadc->container_creator = null;
-    $tadc->reason_code = null;
-    $tadc->other_response_data = null;
-    return $tadc;
-}
-
-/**
- * Converts the identifiers in the form (doi, ISBN, etc.) to how they are stored in the database
- *
+ * Adds properties to a TADC object that replicates an LTI object so we can piggyback off of the existing LTI module
  * @param stdClass $tadc
  */
-function tadc_form_identifiers_to_resource_identifiers(stdClass &$tadc)
+function tadc_add_lti_properties(stdClass &$tadc)
 {
-    if(@$tadc->doi)
-    {
-        $tadc->document_identifier = 'doi:' . $tadc->doi;
-    } elseif(@$tadc->pmid)
-    {
-        $tadc->document_identifier = 'pmid:' . $tadc->pmid;
-    }
+    $pluginSettings = get_config('tadc');
 
-    if(@$tadc->isbn)
-    {
-        $tadc->container_identifier = 'isbn:' . $tadc->isbn;
-    } elseif(@$tadc->issn)
-    {
-        $tadc->container_identifier = 'issn:' . $tadc->issn;
-    }
-}
+    $tadc->toolurl = tadc_generate_launch_url($pluginSettings->tadc_location, $pluginSettings->tenant_code);
+    $tadc->instructorchoiceacceptgrades = false;
+    $tadc->instructorchoicesendname = true;
+    $tadc->instructorchoicesendemailaddr = true;
+    $tadc->instructorchoiceallowroster = false;
+    $tadc->launchcontainer = null;
+    $tadc->servicesalt = uniqid('', true);
+    $course = get_course($tadc->course);
+    $customLTIParams = array('launch_identifier='.uniqid());
+    $baseCourseCode = $course->{$pluginSettings->course_code_field};
 
-/**
- * Updates a TADC request resource with the values returned from the TADC submission request
- *
- * @param stdClass $tadc
- * @param array $response
- */
-function tadc_update_resource_with_tadc_response(stdClass &$tadc, array $response)
-{
-
-    $other_response_data = array();
-    $id = explode("/", $response['id']);
-    $tadc->tadc_id = $id[count($id) - 1];
-    $tadc->request_status = $response['status'];
-    if(isset($response['message']))
+    if(isset($pluginSettings->course_code_regex))
     {
-        $tadc->status_message = $response['message'];
-    }
-
-    if(isset($response['reason_code']))
-    {
-        $tadc->reason_code = $response['reason_code'];
-    }
-    foreach(array('url', 'editions', 'locallyHeldEditionIds', 'errors', 'duplicate_of', 'alternate_editions') as $key)
-    {
-        if(isset($response[$key]))
+        if(preg_match("/".$pluginSettings->course_code_regex."/", $baseCourseCode, $matches))
         {
-            $other_response_data[$key] = $response[$key];
+            if(!empty($matches) && isset($matches[1]))
+            {
+                $baseCourseCode = $matches[1];
+            }
         }
     }
-    if(!empty($other_response_data))
+    $customLTIParams[] = 'course_code='.$baseCourseCode;
+    $customLTIParams[] = 'course_name='.$course->fullname;
+    $customLTIParams[] = 'course_start='.date('Y-m-d', $course->startdate);
+    $endDate = tadc_get_course_end($course);
+    if(!empty($endDate))
     {
-        $tadc->other_response_data = json_encode($other_response_data);
+        $customLTIParams[] = 'course_end='.date('Y-m-d', $endDate);
     }
-
-    if(isset($response['metadata']))
-    {
-        tadc_set_resource_values_from_tadc_metadata($tadc, $response['metadata']);
-    }
+    $customLTIParams[] = 'source=' . TADC_SOURCE_URI;
+    $customLTIParams[] = 'trackback=' . urlencode(new moodle_url('/mod/tadc/trackback.php', array('t'=>$tadc->id, 'api_key'=>$pluginSettings->api_key)));
+    $tadc->resourcekey = $pluginSettings->api_key;
+    $tadc->password = $pluginSettings->tadc_shared_secret;
+    $tadc->instructorcustomparameters= implode("\n", $customLTIParams);
+    $tadc->debuglaunch = false;
 }
 
+/**
+ * LTI launch URL for TADC follows a consistent pattern, based on the url/tenancy code
+ *
+ * @param $tadcHost
+ * @param $tadcTenantCode
+ * @return string
+ */
+function tadc_generate_launch_url($tadcHost, $tadcTenantCode)
+{
+    if(substr($tadcHost, -1) !== "/")
+    {
+        $tadcHost .= "/";
+    }
+    return $tadcHost . $tadcTenantCode . TADC_LTI_LAUNCH_PATH;
+}
+
+/**
+ * This is replicated for the LTI module, basically because we can't use the LTI return url from lti module, since these
+ * aren't *actually* lti resources (meaning stored in the lti table)
+ *
+ * @param stdClass $tadc
+ * @return string
+ */
+function tadc_do_lti_launch(stdClass $tadc)
+{
+    global $CFG;
+
+    if(!isset($tadc->resourcekey))
+    {
+        tadc_add_lti_properties($tadc);
+    }
+
+    //There is no admin configuration for this tool. Use configuration in the tadc instance record plus some defaults.
+    $lticonfig = (array)$tadc;
+
+    $lticonfig['sendname'] = $tadc->instructorchoicesendname;
+    $lticonfig['sendemailaddr'] = $tadc->instructorchoicesendemailaddr;
+    $lticonfig['customparameters'] = $tadc->instructorcustomparameters;
+    $lticonfig['acceptgrades'] = $tadc->instructorchoiceacceptgrades;
+    $lticonfig['allowroster'] = $tadc->instructorchoiceallowroster;
+    $lticonfig['forcessl'] = '0';
+
+    //Default the organizationid if not specified
+    if (empty($lticonfig['organizationid'])) {
+        $urlparts = parse_url($CFG->wwwroot);
+
+        $lticonfig['organizationid'] = $urlparts['host'];
+    }
+    $key = $tadc->resourcekey;
+    $secret = $tadc->password;
+    $endpoint = $tadc->toolurl;
+    $endpoint = trim($endpoint);
+
+    //If the current request is using SSL and a secure tool URL is specified, use it
+    if (lti_request_is_using_ssl() && !empty($tadc->securetoolurl)) {
+        $endpoint = trim($tadc->securetoolurl);
+    }
+
+    //If SSL is forced, use the secure tool url if specified. Otherwise, make sure https is on the normal launch URL.
+    if ($lticonfig['forcessl'] == '1') {
+        if (!empty($tadc->securetoolurl)) {
+            $endpoint = trim($tadc->securetoolurl);
+        }
+
+        $endpoint = lti_ensure_url_is_https($endpoint);
+    } else {
+        if (!strstr($endpoint, '://')) {
+            $endpoint = 'http://' . $endpoint;
+        }
+    }
+
+    $orgid = $lticonfig['organizationid'];
+
+    $course = get_course($tadc->course);
+    $requestparams = lti_build_request($tadc, $lticonfig, $course);
+
+    $launchcontainer = lti_get_launch_container($tadc, $lticonfig);
+    $returnurlparams = array('course' => $course->id, 'launch_container' => $launchcontainer, 'instanceid' => $tadc->id);
+
+    if ( $orgid ) {
+        $requestparams["tool_consumer_instance_guid"] = $orgid;
+    }
+
+    if (empty($key) || empty($secret)) {
+        $returnurlparams['unsigned'] = '1';
+    }
+
+    // Add the return URL. We send the launch container along to help us avoid frames-within-frames when the user returns.
+    $url = new moodle_url('/mod/tadc/return.php', $returnurlparams);
+    $returnurl = $url->out(false);
+
+    if ($lticonfig['forcessl'] == '1') {
+        $returnurl = lti_ensure_url_is_https($returnurl);
+    }
+
+    $requestparams['launch_presentation_return_url'] = $returnurl;
+
+    if (!empty($key) && !empty($secret)) {
+        $parms = lti_sign_parameters($requestparams, $endpoint, "POST", $key, $secret);
+
+        $endpointurl = new moodle_url($endpoint);
+        $endpointparams = $endpointurl->params();
+
+        // Strip querystring params in endpoint url from $parms to avoid duplication.
+        if (!empty($endpointparams) && !empty($parms)) {
+            foreach (array_keys($endpointparams) as $paramname) {
+                if (isset($parms[$paramname])) {
+                    unset($parms[$paramname]);
+                }
+            }
+        }
+
+    } else {
+        //If no key and secret, do the launch unsigned.
+        $parms = $requestparams;
+    }
+
+    $debuglaunch = ( $tadc->debuglaunch == 1 );
+
+    $content = lti_post_launch_html($parms, $endpoint, $debuglaunch);
+
+    echo $content;    
+}
+
+/**
+ * When given a course ID from Moodle, will return the TADC course ID (as specified in the module settings regex)
+ *
+ * @param string $courseId
+ * @return string
+ */
 function tadc_format_course_id_for_tadc($courseId)
 {
     $tadc_cfg = get_config('tadc');
-    if($tadc_cfg->course_code_format === '%COURSE_CODE%')
+    if($tadc_cfg->course_code_regex === '%COURSE_CODE%')
     {
         return $courseId;
     }
-    foreach(explode('%COURSE_CODE%', $tadc_cfg->course_code_format) as $cruft)
+    foreach(explode('%COURSE_CODE%', $tadc_cfg->course_code_regex) as $cruft)
     {
         $courseId = preg_replace("/" . $cruft . "/", "", $courseId);
     }
     return $courseId;
 }
 
+/**
+ * Finds all Moodle courses that match the regex (if defined) for the course id
+ *
+ * @param string $courseId
+ * @return array
+ */
 function tadc_courses_from_tadc_course_id($courseId)
 {
     global $DB;
     $tadc_cfg = get_config('tadc');
-    $courseId = str_replace('%COURSE_CODE%', $courseId, $tadc_cfg->course_code_format);
-    $rel = ($tadc_cfg->course_code_format === '%COURSE_CODE%' ? '=' : 'REGEXP');
+    $courseId = str_replace('%COURSE_CODE%', $courseId, $tadc_cfg->course_code_regex);
+    $rel = ($tadc_cfg->course_code_regex === '%COURSE_CODE%' ? '=' : 'REGEXP');
     return $DB->get_records_select('course', $tadc_cfg->course_code_field . " $rel ?", array($courseId));
 }
 
 /**
- * A client class to interact with the TADC service
+ * This generates the expected HMAC signature in the trackback
  *
- * Class mod_tadc_tadcclient
+ * @param $secret
+ * @param array $args
+ * @return string
  */
-class mod_tadc_tadcclient {
-    private $_conn;
-    private $_base_url;
-    private $_key;
-    private $_secret;
-
-    /**
-     * @param string $tadc_location
-     * @param string $api_key
-     * @param string $shared_secret
-     */
-    public function __construct($tadc_location, $api_key, $shared_secret)
+function tadc_verify_request_signature($secret, array $args = array())
+{
+    // Generate our key to sign
+    $keys = array();
+    foreach(array_keys($args) as $key)
     {
-        $this->_base_url = $tadc_location;
-        $this->_key = $api_key;
-        $this->_secret = $shared_secret;
-        $this->_conn = new \Curl(array('cache'=>false, 'debug'=>false));
+        $keys[] = urlencode($key);
+    }
+    $values = array();
+    foreach(array_values($args) as $value)
+    {
+        $values[] = urlencode($value);
     }
 
-    /**
-     * Generates the api signature and POSTs a request to the TADC service
-     *
-     * @param $params
-     * @return bool
-     */
-    public function submit_request($params)
-    {
-        $params['res.signature'] = $this->generate_hash($params);
-        $params['res.api_key'] = $this->_key;
-        return $this->_conn->post($this->_base_url . '/request/', $this->generate_query_string($params), array('httpheader'=>array('Accept: application/json')));
-    }
+    $params = array_combine($keys, $values);
 
-    /**
-     * Generates the API signature from the query vars.  This SHOULD NOT contain 'api_key' or 'signature'
-     *
-     * @param array $params
-     * @return string
-     */
-    private function generate_hash(array $params)
-    {
-        $values = array($this->_key);
-        $keys = array_keys($params);
-        sort($keys);
-        foreach($keys as $key)
-        {
-            $values[] = $params[$key];
+    // Parameters are sorted by name, using lexicographical byte value ordering.
+    // Ref: Spec: 9.1.1 (1)
+    uksort($params, 'strcmp');
+
+    $pairs = array();
+    foreach ($params as $parameter => $value) {
+        if (is_array($value)) {
+            // If two or more parameters share the same name, they are sorted by their value
+            // Ref: Spec: 9.1.1 (1)
+            natsort($value);
+            foreach ($value as $duplicate_value) {
+                $pairs[] = $parameter . '=' . $duplicate_value;
+            }
+        } else {
+            $pairs[] = $parameter . '=' . $value;
         }
-        return hash_hmac('sha256', implode('|',$values), $this->_secret);
     }
-
-    /**
-     * OpenURL requests don't conform to PHP's built in query var generator, so we have to build the query string
-     * manually
-     *
-     * @param array $params
-     * @return string
-     */
-    private function generate_query_string(array $params)
-    {
-        $query = array();
-        foreach($params as $key=>$val)
-        {
-            array_push($query, $key . '=' . urlencode($val));
-        }
-        return implode('&', $query);
-    }
+    $key = urlencode(implode("&", $pairs));
+    return hash_hmac('sha256', $key, $secret);
 }

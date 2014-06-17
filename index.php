@@ -46,27 +46,31 @@ if (! $tadcs = get_all_instances_in_course('tadc', $course)) {
     notice(get_string('notadcs', 'tadc'), new moodle_url('/course/view.php', array('id' => $course->id)));
 }
 
-if ($course->format == 'weeks') {
-    $table->head  = array(get_string('week'), get_string('name'));
-    $table->align = array('center', 'left');
-} else if ($course->format == 'topics') {
-    $table->head  = array(get_string('topic'), get_string('name'));
-    $table->align = array('center', 'left', 'left', 'left');
-} else {
-    $table->head  = array(get_string('name'));
-    $table->align = array('left', 'left', 'left');
-}
+// Print the list of instances (your module will probably extend this)
+$timenow = time();
+$strname = get_string("name");
+$usesections = course_format_uses_sections($course->format);
 
+$table = new html_table();
+$table->attributes['class'] = 'generaltable mod_index';
+
+if ($usesections) {
+    $strsectionname = get_string('sectionname', 'format_'.$course->format);
+    $table->head  = array ($strsectionname, $strname);
+    $table->align = array ("center", "left");
+} else {
+    $table->head  = array ($strname);
+}
 foreach ($tadcs as $tadc) {
     if (!$tadc->visible) {
         $link = html_writer::link(
             new moodle_url('/mod/tadc.php', array('id' => $tadc->coursemodule)),
-            format_string($tadc->section_title, true),
+            format_text($tadc->citation, $tadc->citationformat),
             array('class' => 'dimmed'));
     } else {
         $link = html_writer::link(
             new moodle_url('/mod/tadc.php', array('id' => $tadc->coursemodule)),
-            format_string($tadc->section_title, true));
+            format_text($tadc->citation, $tadc->citationformat));
     }
 
     if ($course->format == 'weeks' or $course->format == 'topics') {

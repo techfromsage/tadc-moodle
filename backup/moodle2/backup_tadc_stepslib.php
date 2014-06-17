@@ -18,10 +18,8 @@ class backup_tadc_activity_structure_step extends backup_activity_structure_step
     protected function define_structure() {
         // Define each element separated
         $tadc = new backup_nested_element('tadc', array('id'), array(
-            'type', 'section_title', 'section_creator', 'start_page', 'end_page', 'container_title', 'document_identifier',
-            'container_identifier', 'publication_date', 'volume', 'issue', 'publisher', 'needed_by',
-            'edition', 'tadc_id', 'status_message', 'request_status', 'bundle_url', 'name', 'container_creator', 'reason_code',
-            'other_response_data'
+            'name', 'intro', 'introformat', 'tadc_id', 'status_message', 'request_status', 'bundle_url',
+            'reason_code', 'citation', 'citationformat', 'other_response_data', 'timecreated', 'timemodified'
         ));
 
 

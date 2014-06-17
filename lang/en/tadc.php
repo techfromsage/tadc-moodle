@@ -5,50 +5,20 @@ $string['modulenameplural'] = 'Digitization requests';
 $string['userpreferences'] = 'User preferences';
 $string['tenantshortcode'] = 'Tenant code';
 $string['tenantshortcode_desc'] = 'Tenancy short code used in Talis Aspire (e.g. "broadminster")';
-$string['needed_by'] = 'Needed by';
-$string['booksectionheader'] = 'Chapter or section of a book';
-$string['chaptertitle'] = 'Chapter title or number';
-$string['startpage'] = 'Start page';
-$string['endpage'] = 'End page';
-$string['isbn'] = 'ISBN (10 or 13)';
+
 $string['pluginadministration'] = '';
 $string['pluginname'] = 'Course reading';
 $string['tadc:addinstance'] = 'Add course reading';
 $string['tadc:updateinstance'] = 'Update course reading';
 $string['tadc:view'] = 'View course reading';
 $string['tadc:download'] = 'Download course reading';
-$string['daterequired'] = 'Needed by';
-$string['bookheader'] = 'Book information';
-$string['journalheader'] = 'Journal information';
-$string['booksectionheader'] = 'Chapter or page range';
-$string['other_request_info_header'] = 'Other request information';
-$string['journalsectionheader'] = 'Article';
-$string['journalsectiontitle'] = 'Article title';
-$string['booksectiontitle'] = 'Chapter or section title';
-$string['containercreator'] = 'Author';
-$string['isbn'] = 'ISBN';
-$string['issn'] = 'ISSN/eISSN';
-$string['sectioncreator'] = 'Author(s)';
-$string['sectionstartpage'] = 'Start page';
-$string['sectionendpage'] = 'End page';
-$string['journaltitle'] = 'Journal title';
-$string['booktitle'] = 'Book title';
-$string['publisher'] = 'Publisher/imprint';
-$string['datepublished'] = 'Date published';
-$string['volume'] = 'Volume';
-$string['issue'] = 'Issue';
-$string['doi'] = 'DOI';
-$string['pmid'] = 'PubMed ID';
-$string['journalrequestlink'] = 'Request a journal article';
-$string['bookrequestlink'] = 'Request a chapter or section from a book';
-$string['requestformsubmittext'] = 'Submit request';
-$string['requestformresubmittext'] = 'Re-submit request with these values';
-$string['alternate_editions_mesg'] = 'The library holds the following editions, which may be available for digitisation:';
-$string['edition'] = 'Edition';
-$string['invalidtadcid'] = 'ID does not appear to be a valid digitisation request';
-$string['course_start'] = 'Course start date';
-$string['course_end'] = 'Course end date';
-$string['expected_enrollment'] = 'Expected enrollment for entire course';
+
+
+$string['generalheader'] = 'General';
+$string['activity_name'] = 'Title';
+$string['default_activity_name'] = 'Course reading';
+$string['save_and_continue'] = "Request digitisation";
+$string['request_details'] = "Request details";
 
 /**
  * Admin settings
@@ -60,15 +30,27 @@ $string['shared_secret_desc'] = 'Shared secret salt for verifying requests.  Thi
 $string['trackback_endpoint'] = 'Trackback location';
 $string['trackback_endpoint_desc'] = 'URL of trackback endpoint so TADC can send status updates.';
 $string['api_key'] = 'A valid TADC API key';
-$string['api_key_desc'] = 'Generate this key in the TADC Settings/Manage access keys menu';
+$string['api_key_desc'] = 'Generate this key in the TADC Settings/Integrations menu';
 $string['course_code_field'] = 'Course code field';
 $string['course_code_field_desc'] = 'The Moodle Course Field that corresponds to the TADC course code';
 $string['config_allow_requests'] = 'Allow TADC requests from Moodle';
 $string['config_allow_requests_desc'] = 'Requests can be sent to TADC from Moodle and a digitisation resource will be created within the course';
 $string['config_allow_downloads'] = 'Allow TADC downloads from Moodle';
 $string['config_allow_downloads_desc'] = 'Moodle can be used to specify enrollment in a course, and the bundle player will point the user to Moodle to download the document';
-$string['course_code_format'] = 'Course ID format in Moodle';
-$string['course_code_format_desc'] = 'Since course IDs may be stored differently in Moodle than TADC, this setting lets you configure how to translate between the two: it accepts regexes, but must contain "%COURSE_CODE%" as the part of the string that matches with how the course code appears in TADC.  For example:`^20\\[0-9\]{2}-\\[0-9\]{2}_%COURSE_CODE%\\-(FOO|BAR|BAZ)$`';
+$string['course_code_regex'] = 'Course ID regex';
+$string['course_code_regex_desc'] = 'Since course IDs may be stored differently in Moodle than TADC, this setting lets you configure how to translate between the two: it accepts regexes, but must contain "%COURSE_CODE%" as the part of the string that matches with how the course code appears in TADC.  Example: `^20\\[0-9\]{2}-\\[0-9\]{2}_%COURSE_CODE%\\-(FOO|BAR|BAZ)$`';
+
+$string['server_details_heading'] = 'Server details';
+$string['server_details_desc'] = 'Host name and tenant code used for Talis Aspire Digitised Content';
+
+$string['moodle_course_details_heading'] = 'Moodle course details';
+$string['moodle_details_desc'] = 'Where courses are defined in Moodle and how to map them Talis Aspire Digitised Content';
+
+$string['tadc_integration_heading'] = 'Access key';
+$string['tadc_integration_desc'] = 'To use Digitised Content from within Moodle, an access key/shared secret must be generated from with TADC.  To do this, log into Talis Aspire Digitised Content, and from the "Admin" menu, select "Integrations" and create a new access key';
+
+$string['tadc_services_heading'] = 'Talis Aspire Digitised Content Services';
+$string['tadc_services_desc'] = 'Specify the TADC services you wish to enable from Moodle';
 
 /*
 * Messages for API reason codes:
@@ -102,35 +84,13 @@ $string['WithdrawnByAdminDiscretionMessage'] = 'The request was withdrawn by lib
 // SUCCESS
 $string['QueuedForPackingMessage'] = 'The request is successful. The request has been sent to the packer to attach a coversheet to the document.';
 
-// Help messages:
-$string['booksectiontitle_help'] = 'Book extract requests must contain a chapter or section title, a page range, or, preferably, both.';
-$string['bookstartpage'] = $string['startpage'];
-$string['bookstartpage_help'] = $string['booksectiontitle_help'];
-$string['bookendpage'] = $string['endpage'];
-$string['bookendpage_help'] = $string['booksectiontitle_help'];
-$string['bookcontainertitle'] = $string['booktitle'];
-$string['bookcontainertitle_help'] = 'Book extract requests must contain either a book title, author, and date published or an ISBN';
-$string['containercreator_help'] = $string['bookcontainertitle_help'];
-$string['isbn_help'] = $string['bookcontainertitle_help'];
-$string['bookdatepublished'] = $string['datepublished'];
-$string['bookdatepublished_help'] = $string['bookcontainertitle_help'];
-
-
-$string['journalsectiontitle_help'] = 'Article requests must include a DOI/PMID, an article title, or a start page.';
-$string['journalstartpage'] = $string['startpage'];
-$string['journalstartpage_help'] = $string['journalsectiontitle_help'];
-$string['journaldatepublished'] = $string['datepublished'];
-
-$string['volume_help'] = 'Article requests must include either a DOI/PMID or volume, issue, and/or publication date';
-$string['issue_help'] = $string['volume_help'];
-$string['journaldatepublished_help'] = $string['volume_help'];
-
-$string['journalcontainertitle'] = $string['journaltitle'];
-$string['journalcontainertitle_help'] = 'Article requests must include a DOI/PMID, a journal title, or an ISSN.';
-$string['issn_help'] = $string['journalcontainertitle_help'];
 
 /**
  * Errors
  */
 
 $string['notauthorizedfordownload'] = 'Sorry, you must be enrolled in a course associated with this digitisation to download it.';
+
+$string['return_to_course'] = 'Click <a href="{$a->link}" target="_top">here</a> to return to the course.';
+
+$string['notadc'] = "No digitisations requested for this course";
