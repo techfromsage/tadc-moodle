@@ -395,3 +395,37 @@ function tadc_verify_request_signature($secret, array $args = array())
     $key = urlencode(implode("&", $pairs));
     return hash_hmac('sha256', $key, $secret);
 }
+
+/**
+ * Builds the 'name' property for a digitisation request - now just used for upgrading/backwards compatibility
+ * @deprecated
+ * @param stdClass $tadc
+ * @return string
+ */
+function tadc_build_title_string($tadc)
+{
+    $title = '';
+    if(isset($tadc->section_title))
+    {
+        $title .= $tadc->section_title;
+    }
+    if(isset($tadc->section_title) && (isset($tadc->container_title) || isset($tadc->container_identifier)))
+    {
+        $title .= ' from ';
+    }
+    if(isset($tadc->container_title))
+    {
+        $title .= $tadc->container_title . ', ';
+    } elseif(isset($tadc->container_identifier))
+    {
+        $title .= preg_replace('/^(\w*:)/e', 'strtoupper("$0") . " "', $tadc->container_identifier) . ', ';
+    }
+    if(isset($tadc->start_page) && isset($tadc->end_page))
+    {
+        $title .= 'pp. ' . $tadc->start_page . '-' . $tadc->end_page;
+    } elseif(isset($tadc->start_page))
+    {
+        $title .= 'p. ' . $tadc->start_page;
+    }
+    return chop(trim($title),",");
+}
