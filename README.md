@@ -14,7 +14,7 @@ $ cp -r tadc-moodle /{path}/{to}/{moodle}/mod/tadc
 
 1. Log into your TADC instance and under the 'Admin' menu, select 'Settings'
 2. In the 'Services' tab, set the VLE Brand to 'Moodle' and the VLE location to base url of your Moodle instance and save your settings
-3. Unser the 'Admin' menu, select 'Access keys'.
+3. Under the 'Admin' menu, select 'Integrations'.
 4. Add an access key and take note of the 'API key' and 'shared secret'.
 
 ### Setting up Moodle to submit requests to TADC and create resources within the course:
