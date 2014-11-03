@@ -48,8 +48,9 @@ if ($id) {
     error('You must specify a course_module ID or an instance ID');
 }
 
-require_login($course, true, $cm);
+$PAGE->set_cm($cm, $course);
 $context = context_module::instance($cm->id);
+require_course_login($course, true, $cm);
 
 if($tadc->request_status === 'REJECTED' && $tadc->reason_code === 'InvalidRequest')
 {
