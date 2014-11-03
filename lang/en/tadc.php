@@ -78,6 +78,7 @@ $string['AwaitingFeePayClearanceApprovalMessage'] = 'This resource is not availa
 $string['AwaitingManuallyInitiatedRightsClearanceMessage'] = 'This request cannot be serviced under the terms of your institution\'s CLA site licence, however it will be reviewed to determine if copyright clearance can be acquired elsewhere.';
 $string['UnableToDetermineSerialsHoldingsCoverageMessage'] = 'The system cannot determine if the library\'s serials holdings covers this request.';
 $string['AwaitingSourceAcquisitionMessage'] = 'This resource is not available in the library, however the request will be reviewed to determine if a suitable copy can be obtained elsewhere.';
+
 // WITHDRAWN
 $string['WithdrawnByAdminDiscretionMessage'] = 'The request was withdrawn by library staff.';
 

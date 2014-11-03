@@ -31,6 +31,7 @@ require_once(dirname(__FILE__)."/lib.php");
 define('TADC_LTI_LAUNCH_PATH', '/lti/launch');
 define('TADC_SOURCE_URI', 'http://schemas.talis.com/tadc/v1/referrers/moodle/2');
 
+// get_course() was added to 2.5.1, so use it if it's available, otherwise, just pull course from the DB
 define('TADC_USE_GET_COURSE', function_exists('get_course'));
 
 /**
@@ -156,6 +157,7 @@ function tadc_generate_html_citation($tadc)
  */
 function tadc_add_lti_properties(stdClass &$tadc)
 {
+    // If we don't have get_course, we need to pull in $DB
     if(!TADC_USE_GET_COURSE)
     {
         global $DB;
@@ -225,6 +227,7 @@ function tadc_generate_launch_url($tadcHost, $tadcTenantCode)
 function tadc_do_lti_launch(stdClass $tadc)
 {
     global $CFG;
+    // If we don't have get_course, we need to pull in $DB
     if(!TADC_USE_GET_COURSE)
     {
         global $DB;
