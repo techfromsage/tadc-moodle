@@ -31,6 +31,8 @@ require_once(dirname(__FILE__)."/lib.php");
 define('TADC_LTI_LAUNCH_PATH', '/lti/launch');
 define('TADC_SOURCE_URI', 'http://schemas.talis.com/tadc/v1/referrers/moodle/2');
 
+define('TADC_USE_GET_COURSE', function_exists('get_course'));
+
 /**
  * Attempts to determine the rough end date for the course
  *
@@ -154,6 +156,10 @@ function tadc_generate_html_citation($tadc)
  */
 function tadc_add_lti_properties(stdClass &$tadc)
 {
+    if(!TADC_USE_GET_COURSE)
+    {
+        global $DB;
+    }
     $pluginSettings = get_config('tadc');
 
     $tadc->toolurl = tadc_generate_launch_url($pluginSettings->tadc_location, $pluginSettings->tenant_code);
@@ -163,7 +169,7 @@ function tadc_add_lti_properties(stdClass &$tadc)
     $tadc->instructorchoiceallowroster = false;
     $tadc->launchcontainer = null;
     $tadc->servicesalt = uniqid('', true);
-    $course = get_course($tadc->course);
+    $course = (TADC_USE_GET_COURSE ? get_course($tadc->course) : $DB->get_record('course', array('id' => $tadc->course), '*', MUST_EXIST));
     $customLTIParams = array('launch_identifier='.uniqid());
     $baseCourseCode = $course->{$pluginSettings->course_code_field};
 
@@ -219,6 +225,10 @@ function tadc_generate_launch_url($tadcHost, $tadcTenantCode)
 function tadc_do_lti_launch(stdClass $tadc)
 {
     global $CFG;
+    if(!TADC_USE_GET_COURSE)
+    {
+        global $DB;
+    }
 
     if(!isset($tadc->resourcekey))
     {
@@ -266,7 +276,8 @@ function tadc_do_lti_launch(stdClass $tadc)
 
     $orgid = $lticonfig['organizationid'];
 
-    $course = get_course($tadc->course);
+    $course = (TADC_USE_GET_COURSE ? get_course($tadc->course) : $DB->get_record('course', array('id' => $tadc->course), '*', MUST_EXIST));
+
     $requestparams = lti_build_request($tadc, $lticonfig, $course);
 
     $launchcontainer = lti_get_launch_container($tadc, $lticonfig);
