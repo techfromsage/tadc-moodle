@@ -248,7 +248,6 @@ function tadc_cm_info_dynamic(cm_info $cm) {
  */
 function tadc_get_coursemodule_info($cm) {
     global $DB;
-    error_log('tadc_get_coursemodule_info');
     if (!($tadc = $DB->get_record('tadc', array('id' => $cm->instance),
         'id, name, citation, citationformat, request_status, reason_code, intro, introformat'))) {
         return NULL;

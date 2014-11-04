@@ -461,7 +461,11 @@ function tadc_fetch_remote_dictionary($lang)
 {
     $config = get_config('tadc');
     $dict = array();
-    if(isset($config->tadc_location) && isset($config->tenant_code))
+    if(isset($config->tadc_location) &&
+        isset($config->tenant_code) &&
+        isset($config->api_key) &&
+        isset($config->tadc_shared_secret)
+    )
     {
         $tadcUrl = $config->tadc_location;
         if(substr($tadcUrl, -1) !== "/")
@@ -470,6 +474,9 @@ function tadc_fetch_remote_dictionary($lang)
         }
         $tadcUrl .= $config->tenant_code . '/dictionaries/en.json';
         $http = new curl();
+        $options = array('api_key'=>$config->api_key, 'guid'=>uniqid());
+        $phrase = 'api_key=' . $config->api_key . '&guid=' . $options['guid'];
+        $options['signature'] = hash_hmac('sha256', $phrase, $config->shared_secret);
         $content = $http->get($tadcUrl, $options);
         if($content)
         {
