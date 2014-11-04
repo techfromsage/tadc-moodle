@@ -476,7 +476,7 @@ function tadc_fetch_remote_dictionary($lang)
         $http = new curl();
         $options = array('api_key'=>$config->api_key, 'guid'=>uniqid());
         $phrase = 'api_key=' . $config->api_key . '&guid=' . $options['guid'];
-        $options['signature'] = hash_hmac('sha256', $phrase, $config->shared_secret);
+        $options['signature'] = hash_hmac('sha256', $phrase, $config->tadc_shared_secret);
         $content = $http->get($tadcUrl, $options);
         if($content)
         {
