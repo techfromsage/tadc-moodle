@@ -31,6 +31,9 @@ require_once(dirname(__FILE__)."/lib.php");
 define('TADC_LTI_LAUNCH_PATH', '/lti/launch');
 define('TADC_SOURCE_URI', 'http://schemas.talis.com/tadc/v1/referrers/moodle/2');
 
+// get_course() was added to 2.5.1, so use it if it's available, otherwise, just pull course from the DB
+define('TADC_USE_GET_COURSE', function_exists('get_course'));
+
 /**
  * Attempts to determine the rough end date for the course
  *
@@ -117,7 +120,8 @@ function tadc_generate_html_citation($tadc)
         $requestMarkup .= ', ';
     } elseif(isset($tadc->container_identifier) && !empty($tadc->container_identifier))
     {
-        $requestMarkup .= '<em>' . preg_replace('/^(\w*:)/e', 'strtoupper("$0") . " "', $tadc->container_identifier) . '</em>, ';
+        $identifier = preg_replace_callback('/^(\w*:)/', create_function('$matches', 'return strtoupper($matches[0]) . " ";'), $tadc->container_identifier);
+        $requestMarkup .= '<em>' .$identifier . '</em>, ';
     }
     if(isset($tadc->volume) && !empty($tadc->volume))
     {
@@ -154,6 +158,11 @@ function tadc_generate_html_citation($tadc)
  */
 function tadc_add_lti_properties(stdClass &$tadc)
 {
+    // If we don't have get_course, we need to pull in $DB
+    if(!TADC_USE_GET_COURSE)
+    {
+        global $DB;
+    }
     $pluginSettings = get_config('tadc');
 
     $tadc->toolurl = tadc_generate_launch_url($pluginSettings->tadc_location, $pluginSettings->tenant_code);
@@ -163,7 +172,7 @@ function tadc_add_lti_properties(stdClass &$tadc)
     $tadc->instructorchoiceallowroster = false;
     $tadc->launchcontainer = null;
     $tadc->servicesalt = uniqid('', true);
-    $course = get_course($tadc->course);
+    $course = (TADC_USE_GET_COURSE ? get_course($tadc->course) : $DB->get_record('course', array('id' => $tadc->course), '*', MUST_EXIST));
     $customLTIParams = array('launch_identifier='.uniqid());
     $baseCourseCode = $course->{$pluginSettings->course_code_field};
 
@@ -219,6 +228,11 @@ function tadc_generate_launch_url($tadcHost, $tadcTenantCode)
 function tadc_do_lti_launch(stdClass $tadc)
 {
     global $CFG;
+    // If we don't have get_course, we need to pull in $DB
+    if(!TADC_USE_GET_COURSE)
+    {
+        global $DB;
+    }
 
     if(!isset($tadc->resourcekey))
     {
@@ -234,6 +248,7 @@ function tadc_do_lti_launch(stdClass $tadc)
     $lticonfig['acceptgrades'] = $tadc->instructorchoiceacceptgrades;
     $lticonfig['allowroster'] = $tadc->instructorchoiceallowroster;
     $lticonfig['forcessl'] = '0';
+    $lticonfig['allowinstructorcustom'] = LTI_SETTING_ALWAYS;
 
     //Default the organizationid if not specified
     if (empty($lticonfig['organizationid'])) {
@@ -266,8 +281,17 @@ function tadc_do_lti_launch(stdClass $tadc)
 
     $orgid = $lticonfig['organizationid'];
 
-    $course = get_course($tadc->course);
+    $course = (TADC_USE_GET_COURSE ? get_course($tadc->course) : $DB->get_record('course', array('id' => $tadc->course), '*', MUST_EXIST));
+
     $requestparams = lti_build_request($tadc, $lticonfig, $course);
+
+    // This appears to be Moodle 2.8+
+    if(function_exists('lti_build_custom_parameters'))
+    {
+        // Fake Moodle 2.8's LTI module into doing our bidding
+        $requestparams = array_merge($requestparams, lti_build_custom_parameters(new StdClass(), $lticonfig, $tadc, $requestparams, "",
+            $tadc->instructorcustomparameters, false));
+    }
 
     $launchcontainer = lti_get_launch_container($tadc, $lticonfig);
     $returnurlparams = array('course' => $course->id, 'launch_container' => $launchcontainer, 'instanceid' => $tadc->id);
@@ -428,4 +452,45 @@ function tadc_build_title_string($tadc)
         $title .= 'p. ' . $tadc->start_page;
     }
     return chop(trim($title),",");
+}
+
+/**
+ * @param $lang
+ * @return array
+ */
+function tadc_fetch_remote_dictionary($lang)
+{
+    $config = get_config('tadc');
+    $dict = array();
+    if(isset($config->tadc_location) &&
+        isset($config->tenant_code) &&
+        isset($config->api_key) &&
+        isset($config->tadc_shared_secret)
+    )
+    {
+        $tadcUrl = $config->tadc_location;
+        if(substr($tadcUrl, -1) !== "/")
+        {
+            $tadcUrl .= "/";
+        }
+        $tadcUrl .= $config->tenant_code . '/dictionaries/en.json';
+        $http = new curl();
+        $options = array('api_key'=>$config->api_key, 'guid'=>uniqid());
+        $phrase = 'api_key=' . $config->api_key . '&guid=' . $options['guid'];
+        $options['signature'] = hash_hmac('sha256', $phrase, $config->tadc_shared_secret);
+        $content = $http->get($tadcUrl, $options);
+        if($content)
+        {
+            $tadcDict = json_decode($content, true);
+            if($tadcDict)
+            {
+                foreach($tadcDict as $key=>$value)
+                {
+                    $dict[$key . 'Message'] = $value;
+                }
+            }
+        }
+
+    }
+    return $dict;
 }

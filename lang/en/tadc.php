@@ -1,4 +1,9 @@
 <?php
+if(!defined('TADC_USE_TADC_DICTIONARY'))
+{
+    define('TADC_USE_TADC_DICTIONARY', true);
+}
+
 $string['modulename'] = 'Digitisation Request';
 $string['modulename_help'] = 'Request digisations from books or journals and display them in your course.';
 $string['modulenameplural'] = 'Digitization requests';
@@ -56,33 +61,42 @@ $string['tadc_services_desc'] = 'Specify the TADC services you wish to enable fr
 * Messages for API reason codes:
 */
 
-// REJECTED
-$string['ElectronicCopyAvailableMessage'] = 'According to the library catalogue, there is an existing electronic copy already available. Use this instead of making an additional digital copy.';
-$string['NewerEditionAvailableMessage'] = 'A newer edition is available. Digital copies must be made from the newest edition, unless there is a pedagogical reason to use an earlier edition';
-$string['NotHeldByLibraryMessage'] = 'This resource is not held by the library';
-$string['RequestNotPermissibleUnderRROLicenceMessage'] = 'This request cannot be serviced under the terms of your RRO license';
-$string['InvalidRequestMessage'] = 'The request was either incomplete or had invalid values.';
-$string['CopyLimitExceededMessage'] = 'This request exceeded the copy limits for the work/course.';
-$string['DuplicateRequestMessage'] = 'This request is a duplicate of an already submitted request (same course, time period and requested resource)';
-$string['FeePayClearanceRejectedMessage'] = 'After review, it was determined that library cannot or will not source this request from external sources.';
-$string['RejectedByAdminDiscretionMessage'] = 'Upon review, this request was rejected by library staff.';
-$string['RightsClearanceRejectedMessage'] = 'Your digitisation request has been rejected because the item was unavailable under the terms of the CLA site licence. The library attempted to acquire copying rights elsewhere, but unfortunately on this occasion was unable to do so.';
+if(TADC_USE_TADC_DICTIONARY)
+{
+    require_once(dirname(dirname(dirname(__FILE__))).'/locallib.php');
 
-// REFERRED
-$string['CopyPendingMessage'] = 'This request requires a copy to be uploaded. On uploading the document the system will attach a coversheet and make it available for students.';
-$string['UserInitiatedReferralMessage'] = 'Your referral request will be reviewed by the library before being made available to students.';
-$string['ConciergeInitiatedReferralMessage'] = 'The system could not automatically determine whether or not the request could be cleared - a librarian will manually process the request.';
-$string['UnableToParseLatestEditionMessage'] = 'The system cannot determine whether or not there is a newer edition available - a librarian will manually process the request.';
-$string['UnableToIdentifyResourceMessage'] = 'The system cannot identify the requested resource based on the data supplied - a librarian will manually process the request.';
-$string['AwaitingFeePayClearanceApprovalMessage'] = 'This resource is not available in the library, however the request will be reviewed to determine if a suitable copy can be obtained elsewhere.';
-$string['AwaitingManuallyInitiatedRightsClearanceMessage'] = 'This request cannot be serviced under the terms of your institution\'s CLA site licence, however it will be reviewed to determine if copyright clearance can be acquired elsewhere.';
-$string['UnableToDetermineSerialsHoldingsCoverageMessage'] = 'The system cannot determine if the library\'s serials holdings covers this request.';
+    $string = array_merge($string, tadc_fetch_remote_dictionary('en'));
+}
 
-// WITHDRAWN
-$string['WithdrawnByAdminDiscretionMessage'] = 'The request was withdrawn by library staff.';
-
-// SUCCESS
-$string['QueuedForPackingMessage'] = 'The request is successful. The request has been sent to the packer to attach a coversheet to the document.';
+// Dictionary overrides
+//// REJECTED
+//$string['ElectronicCopyAvailableMessage'] = 'According to the library catalogue, there is an existing electronic copy already available. Use this instead of making an additional digital copy.';
+//$string['NewerEditionAvailableMessage'] = 'A newer edition is available. Digital copies must be made from the newest edition, unless there is a pedagogical reason to use an earlier edition';
+//$string['NotHeldByLibraryMessage'] = 'This resource is not held by the library';
+//$string['RequestNotPermissibleUnderRROLicenceMessage'] = 'This request cannot be serviced under the terms of your RRO license';
+//$string['InvalidRequestMessage'] = 'The request was either incomplete or had invalid values.';
+//$string['CopyLimitExceededMessage'] = 'This request exceeded the copy limits for the work/course.';
+//$string['DuplicateRequestMessage'] = 'This request is a duplicate of an already submitted request (same course, time period and requested resource)';
+//$string['FeePayClearanceRejectedMessage'] = 'After review, it was determined that library cannot or will not source this request from external sources.';
+//$string['RejectedByAdminDiscretionMessage'] = 'Upon review, this request was rejected by library staff.';
+//$string['RightsClearanceRejectedMessage'] = 'Your digitisation request has been rejected because the item was unavailable under the terms of the CLA site licence. The library attempted to acquire copying rights elsewhere, but unfortunately on this occasion was unable to do so.';
+//
+//// REFERRED
+//$string['CopyPendingMessage'] = 'This request requires a copy to be uploaded. On uploading the document the system will attach a coversheet and make it available for students.';
+//$string['UserInitiatedReferralMessage'] = 'Your referral request will be reviewed by the library before being made available to students.';
+//$string['ConciergeInitiatedReferralMessage'] = 'The system could not automatically determine whether or not the request could be cleared - a librarian will manually process the request.';
+//$string['UnableToParseLatestEditionMessage'] = 'The system cannot determine whether or not there is a newer edition available - a librarian will manually process the request.';
+//$string['UnableToIdentifyResourceMessage'] = 'The system cannot identify the requested resource based on the data supplied - a librarian will manually process the request.';
+//$string['AwaitingFeePayClearanceApprovalMessage'] = 'This resource is not available in the library, however the request will be reviewed to determine if a suitable copy can be obtained elsewhere.';
+//$string['AwaitingManuallyInitiatedRightsClearanceMessage'] = 'This request cannot be serviced under the terms of your institution\'s CLA site licence, however it will be reviewed to determine if copyright clearance can be acquired elsewhere.';
+//$string['UnableToDetermineSerialsHoldingsCoverageMessage'] = 'The system cannot determine if the library\'s serials holdings covers this request.';
+//$string['AwaitingSourceAcquisitionMessage'] = 'This resource is not available in the library, however the request will be reviewed to determine if a suitable copy can be obtained elsewhere.';
+//$string['UnableToIdentifyRequestedResourceMessage'] = 'The system cannot identify the requested resource based on the data supplied - a librarian will manually process the request.';
+//// WITHDRAWN
+//$string['WithdrawnByAdminDiscretionMessage'] = 'The request was withdrawn by library staff.';
+//
+//// SUCCESS
+//$string['QueuedForPackingMessage'] = 'The request is successful. The request has been sent to the packer to attach a coversheet to the document.';
 
 
 /**
