@@ -247,6 +247,7 @@ function tadc_do_lti_launch(stdClass $tadc)
     $lticonfig['acceptgrades'] = $tadc->instructorchoiceacceptgrades;
     $lticonfig['allowroster'] = $tadc->instructorchoiceallowroster;
     $lticonfig['forcessl'] = '0';
+    $lticonfig['allowinstructorcustom'] = LTI_SETTING_ALWAYS;
 
     //Default the organizationid if not specified
     if (empty($lticonfig['organizationid'])) {
@@ -282,6 +283,14 @@ function tadc_do_lti_launch(stdClass $tadc)
     $course = (TADC_USE_GET_COURSE ? get_course($tadc->course) : $DB->get_record('course', array('id' => $tadc->course), '*', MUST_EXIST));
 
     $requestparams = lti_build_request($tadc, $lticonfig, $course);
+
+    // This appears to be Moodle 2.8+
+    if(function_exists('lti_build_custom_parameters'))
+    {
+        // Fake Moodle 2.8's LTI module into doing our bidding
+        $requestparams = array_merge($requestparams, lti_build_custom_parameters(new StdClass(), $lticonfig, $tadc, $requestparams, "",
+            $tadc->instructorcustomparameters, false));
+    }
 
     $launchcontainer = lti_get_launch_container($tadc, $lticonfig);
     $returnurlparams = array('course' => $course->id, 'launch_container' => $launchcontainer, 'instanceid' => $tadc->id);
