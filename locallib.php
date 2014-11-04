@@ -452,3 +452,37 @@ function tadc_build_title_string($tadc)
     }
     return chop(trim($title),",");
 }
+
+/**
+ * @param $lang
+ * @return array
+ */
+function tadc_fetch_remote_dictionary($lang)
+{
+    $config = get_config('tadc');
+    $dict = array();
+    if(isset($config->tadc_location) && isset($config->tenant_code))
+    {
+        $tadcUrl = $config->tadc_location;
+        if(substr($tadcUrl, -1) !== "/")
+        {
+            $tadcUrl .= "/";
+        }
+        $tadcUrl .= $config->tenant_code . '/dictionaries/en.json';
+        $http = new curl();
+        $content = $http->get($tadcUrl, $options);
+        if($content)
+        {
+            $tadcDict = json_decode($content, true);
+            if($tadcDict)
+            {
+                foreach($tadcDict as $key=>$value)
+                {
+                    $dict[$key . 'Message'] = $value;
+                }
+            }
+        }
+
+    }
+    return $dict;
+}
