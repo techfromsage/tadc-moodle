@@ -1,6 +1,8 @@
 <?php
-
-define('TADC_USE_TADC_DICTIONARY', true);
+if(!defined('TADC_USE_TADC_DICTIONARY'))
+{
+    define('TADC_USE_TADC_DICTIONARY', true);
+}
 
 $string['modulename'] = 'Digitisation Request';
 $string['modulename_help'] = 'Request digisations from books or journals and display them in your course.';
