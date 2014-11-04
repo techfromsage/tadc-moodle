@@ -120,7 +120,8 @@ function tadc_generate_html_citation($tadc)
         $requestMarkup .= ', ';
     } elseif(isset($tadc->container_identifier) && !empty($tadc->container_identifier))
     {
-        $requestMarkup .= '<em>' . preg_replace('/^(\w*:)/e', 'strtoupper("$0") . " "', $tadc->container_identifier) . '</em>, ';
+        $identifier = preg_replace_callback('/^(\w*:)/', create_function('$matches', 'return strtoupper($matches[0]) . " ";'), $tadc->container_identifier);
+        $requestMarkup .= '<em>' .$identifier . '</em>, ';
     }
     if(isset($tadc->volume) && !empty($tadc->volume))
     {
