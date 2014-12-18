@@ -25,6 +25,8 @@
  * @license    MIT
  */
 
+require_once($CFG->libdir . '/filelib.php');
+
 defined('MOODLE_INTERNAL') || die();
 require_once(dirname(__FILE__)."/lib.php");
 
