@@ -22,8 +22,8 @@ $ cp -r tadc-moodle /{path}/{to}/{moodle}/mod/tadc
 1. Add the TADC module via Site administration -> Plugins -> Plugins overview -> Check for available updates
 2.  Go to Site administration -> Plugins -> Plugins overview page, make sure 'Course readings' (mod_tadc) is enabled
     1. Click on settings
-    2. Add your TADC tenant code (e.g. http://content.talisaspire.com/{something})
-    3. Add the TADC location (probably http://content.talisaspire.com/ unless you are using a CNAME)
+    2. Add your TADC tenant code (e.g. https://content.talisaspire.com/{something})
+    3. Add the TADC location (probably https://content.talisaspire.com/ unless you are using a CNAME)
     4. Enter your course details to translate from Moodle to TADC.
     5. Add your TADC API key.
     6. Add your shared secret passphrase.
