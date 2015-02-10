@@ -228,7 +228,7 @@ function tadc_cm_info_dynamic(cm_info $cm) {
                 $cm->set_user_visible(false);
             }
         }
-        $PAGE->set_cm($cm);
+//        $PAGE->set_cm($cm); //causes theme to be set twice thus breaking moodle.
         $renderer = $PAGE->get_renderer('mod_tadc');
         $cm->set_content($renderer->display_tadc($tadc));
     }
