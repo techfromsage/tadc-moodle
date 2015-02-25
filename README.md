@@ -33,7 +33,7 @@ In theory, the module should now be set up.  'Digitisation Request' should now a
 TADC should now be set up to accept requests from Moodle.
 
 ### Enabling 'Restrict and Download via VLE'
-1. You can ignore the 'REST webservices' section (2.1 - 2.7), but follow all of the other instructions (except 3.5) if you do not wish to enable requests from Moodle
+1. Follow the instructions for *Setting up Moodle to submit requests to TADC and create resources within the course* (ignoring steps 2.4-2.6), select *Allow TADC downloads from Moodle* under the *Specify the TADC services you wish to enable from Moodle* section and save.
 2. In TADC, click on the 'Admin' menu and select 'Settings'
 3. In the 'Bundles' tab, select 'VLE'
 4. The print button should now be enabled in the player, which links to page within Moodle for authorisation.
