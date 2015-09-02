@@ -19,6 +19,7 @@ $ cp -r tadc-moodle /{path}/{to}/{moodle}/mod/tadc
 
 ### Setting up Moodle to submit requests to TADC and create resources within the course:
 
+0. You may need to click 'Notifications' on the left which will prompt you to update the database for the new plugin.
 1. Add the TADC module via Site administration -> Plugins -> Plugins overview -> Check for available updates
 2.  Go to Site administration -> Plugins -> Plugins overview page, make sure 'Course readings' (mod_tadc) is enabled
     1. Click on settings
