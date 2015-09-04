@@ -287,6 +287,12 @@ function tadc_do_lti_launch(stdClass $tadc)
 
     $requestparams = lti_build_request($tadc, $lticonfig, $course);
 
+    // Moodle 2.8+ no longer adds resource_link_id as part of the lti_build_request() method
+    // so we need to add it in here
+    if(function_exists('lti_build_standard_request')){
+        $requestparams = array_merge($requestparams, lti_build_standard_request($tadc, null, false));
+    }
+
     // This appears to be Moodle 2.8+
     if(function_exists('lti_build_custom_parameters'))
     {
