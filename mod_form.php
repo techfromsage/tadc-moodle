@@ -9,6 +9,8 @@ require_once ($CFG->dirroot.'/mod/tadc/locallib.php');
 class mod_tadc_mod_form extends moodleform_mod {
 
     function definition() {
+        global $CFG;
+
         $mform =& $this->_form;
         $tadc = $this->current;
         if(isset($tadc->citation))
@@ -21,7 +23,13 @@ class mod_tadc_mod_form extends moodleform_mod {
         $mform->setDefault('name', get_string('default_activity_name', 'tadc'));
         $mform->addRule('name', null, 'required', null, 'client');
         $mform->setType('name', PARAM_TEXT);
-        $this->add_intro_editor(false);
+
+        if($CFG->version >= 2015111600 ) { // greater or in Moodle 3.0.
+            $this->standard_intro_elements(false);
+        } else {
+            $this->add_intro_editor(false);
+        }
+
         $mform->setAdvanced('introeditor');
 
         $mform->setAdvanced('showdescription');

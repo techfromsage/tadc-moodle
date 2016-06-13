@@ -230,4 +230,11 @@ function xmldb_tadc_upgrade($oldversion) {
     {
         upgrade_mod_savepoint(true, 2014110301, 'tadc');
     }
+
+    // fix for Moodle 3.0.
+    if($oldversion < 2016061400)
+    {
+        upgrade_mod_savepoint(true, 2016061400, 'tadc');
+
+    }
 }
